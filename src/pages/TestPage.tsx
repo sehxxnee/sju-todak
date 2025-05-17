@@ -280,31 +280,15 @@ const TestPage: React.FC = () => {
               className="submit-btn"
               onClick={handlePrev}
               disabled={currentPage === 0}
-              style={{
-                flex: 1,
-                opacity: currentPage === 0 ? 0.5 : 1,
-                background: '#f8f9fa',
-                color: '#7a7bd5',
-                border: '1px solid #7a7bd5',
-                transition: 'all 0.3s ease'
-              }}
             >
               이전
             </button>
           <button
             className="submit-btn"
             onClick={handleNext}
-              disabled={currentQuestions.some((_, idx) => answers[currentPage * questionsPerPage + idx] === null)}
-              style={{
-                flex: 1,
-                opacity: currentQuestions.some((_, idx) => answers[currentPage * questionsPerPage + idx] === null) ? 0.5 : 1,
-                background: '#FFD772',
-                color: '#222',
-                border: 'none',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {currentPage === Math.ceil(questions.length / questionsPerPage) - 1 ? '완료' : '다음'}
+            disabled={currentQuestions.some((_, idx) => answers[currentPage * questionsPerPage + idx] === null)}
+          >
+            {currentPage === Math.ceil(questions.length / questionsPerPage) - 1 ? '완료' : '다음'}
           </button>
           </div>
         </div>

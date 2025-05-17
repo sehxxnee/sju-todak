@@ -12,14 +12,6 @@ const emotionColors = {
   '짜증': '#f3d87e'
 };
 
-const emotionIcons = {
-  '슬픔': <span role="img" aria-label="슬픔">😢</span>,
-  '분노': <span role="img" aria-label="분노">😡</span>,
-  '불안': <span role="img" aria-label="불안">😰</span>,
-  '기쁨': <span role="img" aria-label="기쁨">😊</span>,
-  '짜증': <span role="img" aria-label="짜증">😤</span>
-};
-
 const calendarData = [
   { day: 11, emotion: '불안' },
   { day: 17, emotion: '보통' },
@@ -27,14 +19,6 @@ const calendarData = [
   { day: 25, emotion: '보통' },
   { day: 28, emotion: '불안' },
   { day: 28, emotion: '행복' },
-];
-
-// 예시 일정 데이터
-const dummyScheduleData = [
-  { day: 11, title: '회의', time: '14:00' },
-  { day: 17, title: '스터디', time: '19:00' },
-  { day: 21, title: '병원 예약', time: '10:30' },
-  { day: 28, title: '친구 생일', time: '18:00' },
 ];
 
 const CalendarPage: React.FC = () => {
@@ -51,10 +35,39 @@ const CalendarPage: React.FC = () => {
   // 감정 입력 모달 상태
   const [emotionModal, setEmotionModal] = useState<{ open: boolean; day: number | null }>({ open: false, day: null });
 
-  const handleGoogleSync = () => {
-    // 실제 구현 시 구글 OAuth 인증 및 API 호출 필요
-    setIsGoogleConnected(true);
-    setScheduleData(dummyScheduleData);
+  const handleGoogleSync = async () => {
+    try {
+      let res;
+      if (!isGoogleConnected) {
+        console.log('fetch /calendar/events');
+        res = await fetch('/calendar/events');
+      } else {
+        console.log('fetch /calendar/db-events');
+        res = await fetch('/calendar/db-events');
+      }
+      console.log('fetch response:', res);
+      if (!res.ok) {
+        alert('API 요청 실패: ' + res.status);
+        return;
+      }
+      const data = await res.json();
+      console.log('구글 캘린더 응답:', data);
+      if (data && data.events && Array.isArray(data.events) && data.events.length > 0) {
+        setScheduleData(
+          data.events.map((ev: any) => ({
+            day: new Date(ev.start.dateTime).getDate(),
+            title: ev.summary,
+            time: new Date(ev.start.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }))
+        );
+        setIsGoogleConnected(true);
+      } else {
+        alert('구글 캘린더 이벤트가 없습니다.');
+      }
+    } catch (err) {
+      alert('구글 캘린더 연동에 실패했습니다.');
+      console.error('fetch error:', err);
+    }
   };
 
   // 감정 입력 모달 열기
@@ -194,22 +207,31 @@ const CalendarPage: React.FC = () => {
                   <button
                     key={emotion}
                     style={{
-                      background:emotionColors[emotion as keyof typeof emotionColors],
-                      border:'none',
-                      borderRadius:10,
-                      padding:'10px 18px',
-                      fontWeight:400,
-                      fontSize:'1.05rem',
-                      color:'#333',
-                      cursor:'pointer',
-                      boxShadow:'0 1px 4px rgba(0,0,0,0.06)',
+                      background:'none',
+                      border:'1.5px solid #ddd',
+                      padding:'8px 18px',
+                      margin:0,
                       display:'flex',
                       alignItems:'center',
-                      gap:8
+                      cursor:'pointer',
+                      fontSize:'1.08rem',
+                      color:'#222',
+                      gap:8,
+                      borderRadius:'24px',
+                      minWidth:'70px',
+                      minHeight:'36px',
+                      boxSizing:'border-box'
                     }}
                     onClick={() => handleEmotionSelect(emotion)}
                   >
-                    <span style={{fontSize:22}}>{emotionIcons[emotion as keyof typeof emotionIcons]}</span>
+                    <span style={{
+                      display:'inline-block',
+                      width:20,
+                      height:20,
+                      borderRadius:'50%',
+                      background: emotion === '슬픔' ? '#7575d6' : emotion === '분노' ? '#f77b7b' : emotion === '불안' ? '#f7c873' : emotion === '기쁨' ? '#b7e397' : '#f7c873',
+                      marginRight:8
+                    }}></span>
                     {emotion}
                   </button>
                 ))}

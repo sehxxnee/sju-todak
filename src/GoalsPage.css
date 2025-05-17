@@ -1,6 +1,6 @@
 .goals-root {
   min-height: 100vh;
-  background: #f6f8f7;
+  background: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,7 +99,7 @@
 }
 .goal-progress {
   height: 100%;
-  background: #b7e397;
+  background: #f7eac2;
   border-radius: 8px;
   transition: width 0.4s;
 }
@@ -141,6 +141,7 @@
   font-weight: 600;
   color: #444;
   margin-bottom: 18px;
+  animation: levelUp 1s ease-in-out;
 }
 .todaki-big-img {
   width: 170px;
@@ -163,7 +164,7 @@
 
 .goalspage-root {
   min-height: 100vh;
-  background: #f6f8f7;
+  background: #fff;
   margin: 0;
   padding: 0;
 }
@@ -277,7 +278,7 @@
 }
 
 .progress {
-  background: #7a6a2f;
+  background: #f7eac2;
   height: 100%;
   border-radius: 4px;
   transition: width 0.3s ease;
@@ -409,4 +410,36 @@
 
 .confirm-btn:hover {
   background: #f3e6b8;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes levelUp {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 } 

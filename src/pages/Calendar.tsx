@@ -74,6 +74,15 @@ const CalendarPage: React.FC = () => {
 
   return (
     <div className="calendar-page">
+      <nav className="main-nav">
+        <div className="main-menu">
+          <span style={{cursor:'pointer'}}>채팅</span>
+          <span style={{cursor:'pointer'}}>미션</span>
+          <span style={{cursor:'pointer'}}>분석</span>
+          <span style={{cursor:'pointer'}}>캘린더</span>
+          <span style={{cursor:'pointer'}}>심리검사</span>
+        </div>
+      </nav>
       <h1>감정 캘린더</h1>
       <div className="calendar-container">
         <Calendar

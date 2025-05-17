@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import InitialPage from './pages/InitialPage';
 import MainPage from './pages/MainPage';
@@ -13,9 +13,21 @@ import GoogleCallbackPage from './pages/GoogleCallbackPage';
 import TestCompletePage from './pages/TestCompletePage';
 import './App.css';
 
+function AutoRedirect() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (localStorage.getItem('accessToken') && location.pathname === '/') {
+      navigate('/initial', { replace: true });
+    }
+  }, [location, navigate]);
+  return null;
+}
+
 function App() {
   return (
     <Router>
+      <AutoRedirect />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />

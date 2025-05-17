@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import '../MainPage.css';
 import logoImg from '../assets/logo.png';
 import todakiImg from '../assets/todaki.png';
+import { authFetch } from '../utils/authFetch';
 
 interface Message {
   from: 'user' | 'persona' | 'todaki';
@@ -44,10 +45,12 @@ const personaList: Persona[] = [
   },
 ];
 
-const recordList = [
-  '지원이와 학교생활 고민 상담',
-  '여름씨와 취준 고민 상담',
-  '서연쌤과 우울증 치료 상담',
+const API_BASE = 'https://test-sso.online/chat';
+
+const initialRecordList = [
+  { sessionId: 1, title: '지원이와 학교생활 고민 상담' },
+  { sessionId: 2, title: '여름씨와 취준 고민 상담' },
+  { sessionId: 3, title: '서연쌤과 우울증 치료 상담' },
 ];
 
 const recordMessages: RecordMessages = {
@@ -67,7 +70,6 @@ const recordMessages: RecordMessages = {
     { from: 'persona', text: '우울한 감정을 느끼고 계시는군요. 언제부터 이런 감정이 시작되었나요?' }
   ]
 };
- 
 
 function getTodakiReply(userMsg: string, persona: Persona | null) {
   if (!persona) return '먼저 대화할 페르소나를 선택해 주세요!';
@@ -90,9 +92,13 @@ const MainPage: React.FC = () => {
   const [showPersonaModal, setShowPersonaModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<List>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [recordList, setRecordList] = useState(initialRecordList);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newRoomTitle, setNewRoomTitle] = useState('');
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
 
   const toggleRecord = () => {
     setShowRecord(!showRecord);
@@ -110,6 +116,20 @@ const MainPage: React.FC = () => {
       }, 0);
     }
   }, [messages, selectedPersona, streamingText]);
+
+  useEffect(() => {
+    // 채팅방 목록 조회
+    const fetchChatRooms = async () => {
+      try {
+        const res = await authFetch(API_BASE, { method: 'GET' });
+        if (res.ok) {
+          const data = await res.json();
+          setRecordList(data);
+        }
+      } catch {}
+    };
+    fetchChatRooms();
+  }, []);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -213,6 +233,65 @@ const MainPage: React.FC = () => {
     }
   };
 
+  // 삭제 함수
+  const handleDeleteRecord = async (sessionId: number) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      const res = await authFetch(`${API_BASE}/${sessionId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setRecordList(prev => prev.filter(r => r.sessionId !== sessionId));
+        alert('채팅방이 삭제되었습니다.');
+      } else {
+        alert('삭제에 실패했습니다.');
+      }
+    } catch (e) {
+      alert('오류가 발생했습니다.');
+    }
+  };
+
+  // 캘린더 연동 예시 (구글 연동)
+  const handleGoogleSync = async () => {
+    try {
+      let res;
+      if (!isGoogleConnected) {
+        res = await authFetch('/calendar/events');
+      } else {
+        res = await authFetch('/calendar/db-events');
+      }
+      if (!res.ok) {
+        alert('API 요청 실패: ' + res.status);
+        return;
+      }
+      const data = await res.json();
+      setCalendarEvents(data.events || []);
+      setIsGoogleConnected(true);
+    } catch (err) {
+      alert('구글 캘린더 연동에 실패했습니다.');
+    }
+  };
+
+  // 채팅방 생성 함수
+  const handleCreateChatRoom = async () => {
+    if (!newRoomTitle.trim()) return;
+    try {
+      const res = await authFetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newRoomTitle }),
+      });
+      if (res.ok) {
+        const newRoom = await res.json();
+        setRecordList(prev => [...prev, newRoom]);
+        setShowCreateModal(false);
+        setNewRoomTitle('');
+      } else {
+        alert('채팅방 생성 실패');
+      }
+    } catch {
+      alert('오류 발생');
+    }
+  };
+
   // 가상 스크롤 메시지 렌더러
   const renderRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     // 마지막 메시지 아래에 streamingText가 있으면 typing 표시
@@ -240,7 +319,7 @@ const MainPage: React.FC = () => {
           </div>
           <div className="msg-todaki-content">
             <div className="persona-avatar-name">{msg.personaName || '토닥이'}</div>
-            <span className="persona-bubble" style={{whiteSpace: 'pre-line'}}>{msg.text.replace(/\\n/g, '\n')}</span>
+            <span className="persona-bubble" style={{whiteSpace: 'pre-line'}}>{msg.text.replace(/\n/g, '\n')}</span>
           </div>
         </div>
       );
@@ -252,7 +331,7 @@ const MainPage: React.FC = () => {
         className="msg-user"
         style={{ ...style, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}
       >
-        <span style={{whiteSpace: 'pre-line'}}>{msg.text.replace(/\\n/g, '\n')}</span>
+        <span style={{whiteSpace: 'pre-line'}}>{msg.text.replace(/\n/g, '\n')}</span>
       </div>
     );
   };
@@ -266,7 +345,7 @@ const MainPage: React.FC = () => {
         <img src={logoImg} alt="토닥이 로고" className="main-logo" onClick={() => navigate('/main')} style={{cursor:'pointer'}} />
         <div className="main-menu">
           <span onClick={() => navigate('/main')} style={{cursor:'pointer'}}>채팅</span>
-          <span onClick={() => navigate('/goals')} style={{cursor:'pointer'}}>목표</span>
+          <span onClick={() => navigate('/goals')} style={{cursor:'pointer'}}>미션</span>
           <span onClick={() => navigate('/analysis')} style={{cursor:'pointer'}}>분석</span>
           <span onClick={() => navigate('/calendar')} style={{cursor:'pointer'}}>캘린더</span>
           <span onClick={() => navigate('/test')} style={{cursor:'pointer'}}>심리검사</span>
@@ -296,25 +375,39 @@ const MainPage: React.FC = () => {
                 marginLeft: 6
               }}
               title="새 채팅"
-              onClick={() => {
-                setSelectedPersona(null);
-                setMessages([
-                  { from: 'todaki', text: '안녕! 나는 토닥이야.\n너의 마음을 토닥토닥 해 줄게.\n\n오늘은 어떤 페르소나와 대화하고 싶어?' }
-                ]);
-                setShowRecord(false);
-              }}
+              onClick={() => setShowCreateModal(true)}
             >
               +
             </button>
           </div>
           <div className="record-list">
-            {recordList.map((item, idx) => (
+            {recordList.map((item) => (
               <div 
                 className="record-item" 
-                key={idx}
-                onClick={() => handleRecordClick(item)}
+                key={item.sessionId}
+                onClick={() => handleRecordClick(item.title)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
               >
-                {item}
+                <span>{item.title}</span>
+                <button
+                  className="delete-btn"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleDeleteRecord(item.sessionId);
+                  }}
+                  style={{
+                    marginLeft: 8,
+                    color: '#fff',
+                    background: '#ff4d4f',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 24,
+                    height: 24,
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                  title="삭제"
+                >X</button>
               </div>
             ))}
           </div>
@@ -330,7 +423,7 @@ const MainPage: React.FC = () => {
                     <div className="persona-avatar-name">토닥이</div>
                     <div className="chat-todaki-msg" style={{ textAlign: 'left', whiteSpace: 'pre-line' }}>
                       <div style={{marginTop: 4}}>
-                        {`안녕! 나는 토닥이야.\n너의 마음을 토닥토닥 해 줄게.\n\n오늘은 어떤 페르소나와 대화하고 싶어?`.replace(/\\n/g, '\n')}
+                        {`안녕! 나는 토닥이야.\n너의 마음을 토닥토닥 해 줄게.\n\n오늘은 어떤 페르소나와 대화하고 싶어?`.replace(/\n/g, '\n')}
                       </div>
                     </div>
                   </div>
@@ -415,6 +508,19 @@ const MainPage: React.FC = () => {
           </div>
         </section>
       </div>
+      {/* 채팅방 생성 모달 */}
+      {showCreateModal && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.18)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:16,padding:32,minWidth:320,boxShadow:'0 2px 16px rgba(0,0,0,0.13)',display:'flex',flexDirection:'column',gap:16}}>
+            <div style={{fontWeight:600,fontSize:'1.1rem',marginBottom:8}}>채팅방 이름 입력</div>
+            <input value={newRoomTitle} onChange={e=>setNewRoomTitle(e.target.value)} placeholder="채팅방 이름" style={{padding:8,fontSize:'1rem',borderRadius:8,border:'1px solid #eee'}} />
+            <div style={{display:'flex',gap:12,marginTop:8}}>
+              <button onClick={handleCreateChatRoom} style={{background:'#ffe38e',border:'none',borderRadius:8,padding:'8px 18px',fontWeight:500,cursor:'pointer'}}>생성</button>
+              <button onClick={()=>setShowCreateModal(false)} style={{background:'#eee',border:'none',borderRadius:8,padding:'8px 18px',fontWeight:500,cursor:'pointer'}}>취소</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

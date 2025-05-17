@@ -85,11 +85,19 @@ const InitialPage: React.FC = () => {
         </div>
         <div className="input-section">
           <div className="input-group">
-            <label>나는 몇 살이야?</label>
+            <label>너는 몇 살이야?</label>
             <input
               type="number"
               value={age}
-              onChange={(e) => setAge(e.target.value)}
+              min={1}
+              max={100}
+              step={1}
+              onChange={e => {
+                const v = e.target.value;
+                if (v === '' || (/^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 100)) {
+                  setAge(v.replace(/^0+/, ''));
+                }
+              }}
               placeholder="나이를 입력해주세요"
             />
           </div>
@@ -127,7 +135,15 @@ const InitialPage: React.FC = () => {
           <button
             className="submit-btn"
             onClick={handleNext}
-            disabled={!age || !gender || selectedWorries.length === 0}
+            disabled={
+              !age ||
+              !gender ||
+              selectedWorries.length === 0 ||
+              isNaN(Number(age)) ||
+              Number(age) < 1 ||
+              Number(age) > 100 ||
+              !Number.isInteger(Number(age))
+            }
           >
             다음
           </button>

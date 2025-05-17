@@ -23,8 +23,9 @@ body, html, #root {
   z-index: 100;
   margin-bottom: 32px;
   width: 100%;
-  max-width: 1400px;
   margin: 0 auto 32px auto;
+  overflow: visible;
+  min-width: 0;
 }
 
 .main-logo {
@@ -38,14 +39,25 @@ body, html, #root {
   font-size: 1.25rem;
   color: #444;
   font-weight: 500;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  overflow-x: auto;
 }
 
-.profile-menu { 
+.profile-menu {
+  position: relative !important;
+  z-index: 3000 !important;
   color: #888;
-  margin-left: auto;
-  padding-right: 60px;
+  margin-left: 24px;
+  padding-right: 0;
   white-space: nowrap;
+  font-size: 1.08rem;
+  flex-shrink: 0 !important;
+  background: #fff;
+  max-width: 200px;
+  overflow: visible;
+  align-self: center;
 }
 
 .menu-toggle-btn {

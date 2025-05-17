@@ -8,5 +8,8 @@ export default defineConfig({
     ],
     server: {
         port: 5173, // 개발 서버 포트 5173으로 변경
+        proxy: {
+            '/calendar': 'http://localhost:3000', // NestJS 서버 포트로 맞추세요
+        }
     },
 });

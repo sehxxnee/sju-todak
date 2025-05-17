@@ -126,15 +126,15 @@
 }
 
 .gender-btn.selected {
-  background: #FFD772;
+  background: #ffe38e;
   color: #222;
-  border-color: #FFD772;
+  border-color: #ffe38e;
   box-shadow: 0 2px 8px rgba(255,215,114,0.10);
 }
 
 .gender-btn.selected:hover {
-  background: #ffce3c;
-  border-color: #ffce3c;
+  background: #ffe38e;
+  border-color: #ffe38e;
 }
 
 .worry-categories {
@@ -156,21 +156,23 @@
 }
 
 .worry-category-btn.selected {
-  background: #FFD772;
+  background: #ffe38e;
   color: #222;
-  border-color: #FFD772;
+  border-color: #ffe38e;
   box-shadow: 0 2px 8px rgba(255,215,114,0.10);
 }
 
 .worry-category-btn.selected:hover {
-  background: #ffce3c;
-  border-color: #ffce3c;
+  background: #ffe38e;
+  border-color: #ffe38e;
 }
 
 .submit-btn {
-  margin-top: auto;
-  padding: 12px;
-  background: #FFD772;
+  margin-top: 10px;
+  padding: 8px;
+  padding-left:15px;
+  padding-right:15px;
+  background: #ffe38e;
   color: #222;
   border: none;
   border-radius: 8px;
