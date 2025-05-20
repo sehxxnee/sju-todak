@@ -51,8 +51,7 @@ const reportData = {
     }
   ]
 };
-
-// 감정 분석 바 (막대 전체 연회색, 감정값만 노란색)
+// 감정 분석 바 (막대 전체 연회색, 감정값만 노란색)                                                                                                                                                                                                                                                         
 const EmotionBar = ({ label, value }: { label: string, value: number }) => (
   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
     <span style={{ width: 48, color: '#444', fontWeight: 500, fontSize: 16 }}>{label}</span>

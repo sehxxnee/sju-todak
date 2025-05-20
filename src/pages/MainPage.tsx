@@ -99,6 +99,7 @@ const MainPage: React.FC = () => {
   const [newRoomTitle, setNewRoomTitle] = useState('');
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
 
   const toggleRecord = () => {
     setShowRecord(!showRecord);
@@ -117,22 +118,28 @@ const MainPage: React.FC = () => {
     }
   }, [messages, selectedPersona, streamingText]);
 
+  // 채팅방 목록 조회 함수 분리
+  const fetchChatRooms = async () => {
+    try {
+      const res = await authFetch('https://test-sso.online/chat', { method: 'GET' });
+      if (res.ok) {
+        const data = await res.json();
+        // chatId를 sessionId로 매핑
+        const mapped = data.map((item: any) => ({
+          sessionId: item.chatId,
+          title: item.title
+        }));
+        setRecordList(mapped);
+      }
+    } catch {}
+  };
+
   useEffect(() => {
-    // 채팅방 목록 조회
-    const fetchChatRooms = async () => {
-      try {
-        const res = await authFetch(API_BASE, { method: 'GET' });
-        if (res.ok) {
-          const data = await res.json();
-          setRecordList(data);
-        }
-      } catch {}
-    };
     fetchChatRooms();
   }, []);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim() || !selectedPersona || !selectedSessionId) return;
     const userMsg = input;
     setMessages(prev => [
       ...prev,
@@ -141,27 +148,27 @@ const MainPage: React.FC = () => {
     setInput('');
     setIsTyping(true);
     setStreamingText('');
-    setTimeout(() => {
-      const fullText = getTodakiReply(userMsg, selectedPersona);
-      let i = 0;
-      function typeChar() {
-        setStreamingText(fullText.slice(0, i + 1));
-        if (i < fullText.length - 1) {
-          i++;
-          setTimeout(typeChar, 28); // 타이핑 속도
-        } else {
-          setIsTyping(false);
-          setMessages(prev => [
-            ...prev,
-            selectedPersona
-              ? { from: 'persona', text: fullText, personaName: selectedPersona.name, personaImg: selectedPersona.img }
-              : { from: 'persona', text: fullText }
-          ]);
-          setStreamingText('');
-        }
+    try {
+      const res = await authFetch(`https://test-sso.online/chat/${selectedSessionId}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(prev => [
+          ...prev,
+          { from: 'persona', text: data.botResponse }
+        ]);
+      } else {
+        alert('메시지 전송 실패');
       }
-      typeChar();
-    }, 700);
+    } catch {
+      alert('오류 발생');
+    } finally {
+      setIsTyping(false);
+      setStreamingText('');
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -217,18 +224,33 @@ const MainPage: React.FC = () => {
     ]);
   };
 
-  // 기록 클릭 핸들러 추가
-  const handleRecordClick = (record: string) => {
-    const persona = record.includes('지원이') ? personaList[0] :
-                   record.includes('여름씨') ? personaList[1] :
-                   record.includes('서연쌤') ? personaList[2] : null;
-    if (persona && recordMessages[record]) {
-      setSelectedPersona(persona);
-      setMessages(recordMessages[record].map(msg =>
-        msg.from === 'persona'
-          ? { ...msg, personaName: persona.name, personaImg: persona.img }
-          : msg
-      ));
+  // 채팅방 메시지 불러오기
+  const fetchChatMessages = async (sessionId: number) => {
+    try {
+      const res = await authFetch(`https://test-sso.online/chat/${sessionId}/messages`, { method: 'GET' });
+      if (res.ok) {
+        const data = await res.json();
+        // API 응답 구조에 맞게 변환
+        const msgList: Message[] = data.map((msg: any) => ({
+          from: msg.userId === 0 ? 'persona' : 'user',
+          text: msg.message,
+          // 필요시 createdAt 등 추가 사용 가능
+        }));
+        setMessages(msgList);
+      } else {
+        setMessages([]);
+      }
+    } catch {
+      setMessages([]);
+    }
+  };
+
+  // 채팅방(기록) 클릭 시 해당 채팅방 메시지 불러오기
+  const handleRecordClick = (title: string) => {
+    const room = recordList.find(r => r.title === title);
+    if (room) {
+      setSelectedSessionId(room.sessionId);
+      fetchChatMessages(room.sessionId);
       setShowRecord(false);
     }
   };
@@ -239,7 +261,7 @@ const MainPage: React.FC = () => {
     try {
       const res = await authFetch(`${API_BASE}/${sessionId}`, { method: 'DELETE' });
       if (res.ok) {
-        setRecordList(prev => prev.filter(r => r.sessionId !== sessionId));
+        await fetchChatRooms(); // 삭제 성공 시 목록 재조회
         alert('채팅방이 삭제되었습니다.');
       } else {
         alert('삭제에 실패했습니다.');
@@ -280,12 +302,35 @@ const MainPage: React.FC = () => {
         body: JSON.stringify({ title: newRoomTitle }),
       });
       if (res.ok) {
-        const newRoom = await res.json();
-        setRecordList(prev => [...prev, newRoom]);
+        const data = await res.json();
+        if (typeof data === 'string') {
+          alert('채팅방 생성 결과: ' + data);
+        }
+        await fetchChatRooms(); // 생성 후 목록 새로고침
         setShowCreateModal(false);
         setNewRoomTitle('');
       } else {
         alert('채팅방 생성 실패');
+      }
+    } catch {
+      alert('오류 발생');
+    }
+  };
+
+  // 채팅 종료 및 분석 함수
+  const handleAnalyzeChat = async () => {
+    if (!selectedSessionId) return;
+    try {
+      const res = await authFetch(`https://test-sso.online/chat/${selectedSessionId}/end`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert('분석 결과: ' + (typeof data === 'string' ? data : JSON.stringify(data)));
+      } else if (res.status === 400) {
+        alert('15턴(메시지) 이상 대화해야 분석이 가능합니다.');
+      } else {
+        alert('분석 요청 실패');
       }
     } catch {
       alert('오류 발생');
@@ -311,9 +356,10 @@ const MainPage: React.FC = () => {
     const msg = messages[index];
     if (!msg) return null;
     if (!selectedPersona && index === 0) return null;
+    const key = msg && (msg as any).id !== undefined ? `msg-${(msg as any).id}` : `idx-${index}`;
     if (msg.from === 'persona' || msg.from === 'todaki') {
       return (
-        <div key={index} className="msg-todaki" style={{ ...style }}>
+        <div key={key} className="msg-todaki" style={{ ...style }}>
           <div className="persona-avatar-block">
             <img src={msg.personaImg || todakiImg} alt={msg.personaName || '토닥이'} className="persona-avatar-img" />
           </div>
@@ -327,7 +373,7 @@ const MainPage: React.FC = () => {
     // 사용자 메시지
     return (
       <div
-        key={index}
+        key={key}
         className="msg-user"
         style={{ ...style, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}
       >
@@ -459,6 +505,13 @@ const MainPage: React.FC = () => {
                   </List>
                 </div>
                 <div className="chat-input-row">
+                  <button
+                    className="analyze-btn"
+                    title="채팅 분석"
+                    style={{marginRight:8,background:'#e0eaff',border:'none',borderRadius:8,padding:'0 14px',fontWeight:500,cursor:'pointer'}}
+                    onClick={handleAnalyzeChat}
+                    disabled={isTyping}
+                  >분석</button>
                   <button
                     className="persona-btn"
                     title="페르소나 변경"
