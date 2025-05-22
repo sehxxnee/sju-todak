@@ -9,14 +9,27 @@ const GoogleCallbackPage: React.FC = () => {
     const params = new URLSearchParams(queryString);
     const accessToken = params.get('accessToken');
 
-    if (accessToken) {
-      localStorage.setItem('accessToken', accessToken);
-    }
-    // 완전히 해시를 덮어써서 /initial로 이동
-    window.location.replace(window.location.origin + window.location.pathname + '#/initial');
+   if (accessToken) {
+     localStorage.setItem('accessToken', accessToken);
+
+     // completed 여부 확인
+     fetch('https://test-sso.online/users/basic-info/completed', {
+       headers: {
+         Authorization: `Bearer ${accessToken}`,
+       },
+     })
+       .then((res) => res.json())
+       .then((data) => {
+         if (data.completed) {
+           window.location.replace(window.location.origin + window.location.pathname + '#/main');
+         } else {
+           window.location.replace(window.location.origin + window.location.pathname + '#/initial');
+         }
+       });
+   }
   }, []);
 
-  return <div>로그인 처리 중...</div>;
+  return <div>로그인 처리 중…</div>;
 };
 
 export default GoogleCallbackPage; 

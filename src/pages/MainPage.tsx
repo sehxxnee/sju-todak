@@ -11,6 +11,7 @@ interface Message {
   text: string;
   personaName?: string;
   personaImg?: string;
+  audioUrl?: string;
 }
 
 interface Persona {
@@ -26,19 +27,19 @@ type RecordMessages = {
 
 const personaList: Persona[] = [
   {
-    name: '민지원',
+    name: '8살_민지원',
     desc: '8세 남자아이',
     detail: '에너지가 넘치고 낙천적이며 밝은 기운을 가졌어요. 말투는 해맑고 순수하며, 항상 반말을 사용하고 문장은 짧고 단순합니다. 너무 깊은 분석이나 어른스러운 충고는 하지 않아요. 대신 아이의 시선으로 단순하게, 긍정적인 힘을 주는 말로 도와줘요.',
     img: 'https://em-content.zobj.net/source/apple/354/boy_1f466.png',
   },
   {
-    name: '한여름',
+    name: '26살_한여름',
     desc: '26세 여자',
     detail: '가까운 친구처럼 편안한 분위기를 만들며, 어려운 이야기도 털어놓을 수 있게 도와줘요. 부드럽고 자연스러운 반말이나 반존대를 사용해요. 상대의 감정을 잘 받아주며, 위로와 현실적인 조언을 함께 전해요.',
     img: 'https://em-content.zobj.net/source/apple/354/woman_1f469.png',
   },
   {
-    name: '김서연',
+    name: '55살_김서연',
     desc: '55세 심리상담 전문가',
     detail: '오랜 임상 경험과 상담 이론 지식을 갖춘 전문 심리상담가입니다. 말투는 신뢰감 있고 단정하며, 전문 용어와 개념을 사용하면서도 사용자가 이해할 수 있도록 배려하는 설명을 덧붙여요. 사용자가 스스로 감정을 이해하며 건강한 방향으로 나아가게 도와요.',
     img: 'https://em-content.zobj.net/source/apple/354/woman-teacher_1f469-200d-1f3eb.png',
@@ -100,6 +101,7 @@ const MainPage: React.FC = () => {
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
+  const [isVoiceInput, setIsVoiceInput] = useState(false);
 
   const toggleRecord = () => {
     setShowRecord(!showRecord);
@@ -118,17 +120,30 @@ const MainPage: React.FC = () => {
     }
   }, [messages, selectedPersona, streamingText]);
 
+  useEffect(() => {
+    if (showRecord && recordList.length > 0) {
+      setSelectedSessionId(recordList[0].sessionId);
+      fetchChatMessages(recordList[0].sessionId);
+    }
+  }, [showRecord, recordList]);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  }, [messages, streamingText, isTyping]);
+
   // 채팅방 목록 조회 함수 분리
   const fetchChatRooms = async () => {
     try {
       const res = await authFetch('https://test-sso.online/chat', { method: 'GET' });
       if (res.ok) {
         const data = await res.json();
-        // chatId를 sessionId로 매핑
+        // chatId를 sessionId로 매핑, 최신 채팅방이 맨 위로 오도록 역순 정렬
         const mapped = data.map((item: any) => ({
           sessionId: item.chatId,
           title: item.title
-        }));
+        })).reverse();
         setRecordList(mapped);
       }
     } catch {}
@@ -149,25 +164,50 @@ const MainPage: React.FC = () => {
     setIsTyping(true);
     setStreamingText('');
     try {
-      const res = await authFetch(`https://test-sso.online/chat/${selectedSessionId}/message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg }),
-      });
+      let res;
+      if (isVoiceInput) {
+        res = await authFetch(`https://test-sso.online/voice-chat/${selectedSessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMsg }),
+        });
+        setIsVoiceInput(false);
+      } else {
+        res = await authFetch(`https://test-sso.online/chat/${selectedSessionId}/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMsg }),
+        });
+      }
       if (res.ok) {
         const data = await res.json();
-        setMessages(prev => [
-          ...prev,
-          { from: 'persona', text: data.botResponse }
-        ]);
+        let i = 0;
+        const fullText = data.botResponse;
+        setStreamingText('');
+        const typingInterval = setInterval(() => {
+          setStreamingText(fullText.slice(0, i + 1));
+          i++;
+          if (i === fullText.length) {
+            clearInterval(typingInterval);
+            setIsTyping(false);
+            setMessages(prev => [
+              ...prev,
+              {
+                from: 'persona',
+                text: fullText,
+                personaName: data.persona,
+                personaImg: personaList.find(p => p.name === data.persona)?.img,
+                audioUrl: data.audioResponse
+              }
+            ]);
+            setStreamingText('');
+          }
+        }, 30);
       } else {
         alert('메시지 전송 실패');
       }
     } catch {
       alert('오류 발생');
-    } finally {
-      setIsTyping(false);
-      setStreamingText('');
     }
   };
 
@@ -182,7 +222,7 @@ const MainPage: React.FC = () => {
       return;
     }
     if (isRecording) {
-      recognitionRef.current && recognitionRef.current.stop();
+      if (recognitionRef.current) recognitionRef.current.stop();
       setIsRecording(false);
       return;
     }
@@ -194,6 +234,7 @@ const MainPage: React.FC = () => {
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       setInput(transcript);
+      setIsVoiceInput(true); // 음성 입력임을 표시
       setIsRecording(false);
     };
     recognition.onerror = () => {
@@ -211,17 +252,45 @@ const MainPage: React.FC = () => {
     setShowPersonaModal(true);
   };
   // 모달에서 페르소나 선택 시 페르소나만 변경(대화 유지)
-  const handlePersonaChange = (persona: Persona) => {
-    setSelectedPersona(persona);
-    setShowPersonaModal(false);
+  const handlePersonaChange = async (persona: Persona) => {
+    if (!selectedSessionId) return;
+    try {
+      const res = await authFetch(`https://test-sso.online/chat/${selectedSessionId}/persona`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ persona: persona.name }),
+      });
+      if (res.ok) {
+        setSelectedPersona(persona);
+        setShowPersonaModal(false);
+      } else {
+        alert('페르소나 변경 실패');
+      }
+    } catch {
+      alert('오류 발생');
+    }
   };
 
-  // 페르소나 선택 시 초기 메시지 추가
-  const handlePersonaSelect = (persona: Persona) => {
-    setSelectedPersona(persona);
-    setMessages([
-      { from: 'persona', text: `${persona.name}입니다! 무엇이 궁금한가요?`, personaName: persona.name, personaImg: persona.img }
-    ]);
+  // 페르소나 선택 시 초기 메시지 추가 및 persona 변경 API 연동
+  const handlePersonaSelect = async (persona: Persona) => {
+    if (!selectedSessionId) return;
+    try {
+      const res = await authFetch(`https://test-sso.online/chat/${selectedSessionId}/persona`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ persona: persona.name }),
+      });
+      if (res.ok) {
+        setSelectedPersona(persona);
+        setMessages([
+          { from: 'persona', text: `${persona.name}입니다! 무엇이 궁금한가요?`, personaName: persona.name, personaImg: persona.img }
+        ]);
+      } else {
+        alert('페르소나 변경 실패');
+      }
+    } catch {
+      alert('오류 발생');
+    }
   };
 
   // 채팅방 메시지 불러오기
@@ -230,11 +299,11 @@ const MainPage: React.FC = () => {
       const res = await authFetch(`https://test-sso.online/chat/${sessionId}/messages`, { method: 'GET' });
       if (res.ok) {
         const data = await res.json();
-        // API 응답 구조에 맞게 변환
-        const msgList: Message[] = data.map((msg: any) => ({
-          from: msg.userId === 0 ? 'persona' : 'user',
+        const msgList: Message[] = data.map((msg: any, idx: number) => ({
+          from: idx % 2 === 0 ? 'user' : 'persona',
           text: msg.message,
-          // 필요시 createdAt 등 추가 사용 가능
+          personaName: msg.persona,
+          personaImg: personaList.find(p => p.name === msg.persona)?.img
         }));
         setMessages(msgList);
       } else {
@@ -250,8 +319,10 @@ const MainPage: React.FC = () => {
     const room = recordList.find(r => r.title === title);
     if (room) {
       setSelectedSessionId(room.sessionId);
-      fetchChatMessages(room.sessionId);
+      fetchChatMessages(room.sessionId); // 기존 채팅방 클릭 시 메시지 불러오기
       setShowRecord(false);
+      // 페르소나 선택 화면 건너뛰기
+      setSelectedPersona(personaList[0]); // 기본 페르소나 설정
     }
   };
 
@@ -303,12 +374,13 @@ const MainPage: React.FC = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        if (typeof data === 'string') {
-          alert('채팅방 생성 결과: ' + data);
-        }
+        const newSessionId = data.chatId ?? data.sessionId;
         await fetchChatRooms(); // 생성 후 목록 새로고침
         setShowCreateModal(false);
         setNewRoomTitle('');
+        setSelectedSessionId(newSessionId); // 생성된 채팅방으로 진입
+        setSelectedPersona(null); // 페르소나 선택 화면으로
+        // 최초 생성된 채팅방이면 기록을 불러오지 않음 (fetchChatMessages 호출 X)
       } else {
         alert('채팅방 생성 실패');
       }
@@ -337,51 +409,6 @@ const MainPage: React.FC = () => {
     }
   };
 
-  // 가상 스크롤 메시지 렌더러
-  const renderRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    // 마지막 메시지 아래에 streamingText가 있으면 typing 표시
-    if (index === messages.length && isTyping && streamingText) {
-      return (
-        <div style={{ ...style }} className="msg-todaki">
-          <div className="persona-avatar-block">
-            <img src={selectedPersona ? selectedPersona.img : todakiImg} alt="토닥이" className="persona-avatar-img" />
-          </div>
-          <div className="msg-todaki-content">
-            <div className="persona-avatar-name">{selectedPersona ? selectedPersona.name : '토닥이'}</div>
-            <span className="persona-bubble" style={{whiteSpace: 'pre-line'}}>{streamingText}</span>
-          </div>
-        </div>
-      );
-    }
-    const msg = messages[index];
-    if (!msg) return null;
-    if (!selectedPersona && index === 0) return null;
-    const key = msg && (msg as any).id !== undefined ? `msg-${(msg as any).id}` : `idx-${index}`;
-    if (msg.from === 'persona' || msg.from === 'todaki') {
-      return (
-        <div key={key} className="msg-todaki" style={{ ...style }}>
-          <div className="persona-avatar-block">
-            <img src={msg.personaImg || todakiImg} alt={msg.personaName || '토닥이'} className="persona-avatar-img" />
-          </div>
-          <div className="msg-todaki-content">
-            <div className="persona-avatar-name">{msg.personaName || '토닥이'}</div>
-            <span className="persona-bubble" style={{whiteSpace: 'pre-line'}}>{msg.text.replace(/\n/g, '\n')}</span>
-          </div>
-        </div>
-      );
-    }
-    // 사용자 메시지
-    return (
-      <div
-        key={key}
-        className="msg-user"
-        style={{ ...style, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }}
-      >
-        <span style={{whiteSpace: 'pre-line'}}>{msg.text.replace(/\n/g, '\n')}</span>
-      </div>
-    );
-  };
-
   return (
     <div className="mainpage-root">
       <nav className="main-nav">
@@ -397,6 +424,30 @@ const MainPage: React.FC = () => {
           <span onClick={() => navigate('/test')} style={{cursor:'pointer'}}>심리검사</span>
         </div>
         <span className="profile-menu" style={{cursor:'pointer', marginLeft: 'auto', paddingRight: '20px'}} onClick={() => navigate('/profile')}>프로필</span>
+        <button
+  style={{
+    marginLeft: 16,
+    padding: '8px 18px',
+    borderRadius: 12,
+    background: '#FFD600',
+    color: '#222',
+    fontWeight: 600,
+    border: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+    fontSize: '1rem',
+  }}
+  onClick={async () => {
+    const token = await requestNotificationPermission();
+    if (token) {
+      alert('알림이 허용되었습니다!');
+    } else {
+      alert('알림 권한이 거부되었거나 이미 허용됨');
+    }
+  }}
+>
+  알림 허용하기
+</button>
       </nav>
       <div className="mainpage-content">
         <aside className={`record-section ${showRecord ? 'show' : ''}`}>
@@ -443,8 +494,8 @@ const MainPage: React.FC = () => {
                   }}
                   style={{
                     marginLeft: 8,
-                    color: '#fff',
-                    background: '#ff4d4f',
+                    color: '#888',
+                    background: 'none',
                     border: 'none',
                     borderRadius: '50%',
                     width: 24,
@@ -460,8 +511,35 @@ const MainPage: React.FC = () => {
         </aside>
         <section className="chat-section">
           <div className="chat-box">
-            {/* 페르소나 선택 전 */}
-            {!selectedPersona && (
+            {/* 채팅방이 선택되지 않은 경우 */}
+            {!selectedSessionId && (
+              <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%'}}>
+                <div style={{fontSize:'1.18rem', color:'#b48a00', fontWeight:400, marginBottom:32, letterSpacing:'-0.5px'}}>마음이 힘들 때, 언제든 토닥이와 대화를 시작해보세요</div>
+                <button
+  style={{
+    background: '#ffe38e', // border와 동일한 색상
+    border: 'none',
+    borderRadius: 16,
+    padding: '14px 32px',
+    fontWeight: 600,
+    fontSize: '1.08rem',
+    color: '#b48a00',
+    cursor: 'pointer',
+    boxShadow: '0 2px 8px rgba(255,227,142,0.10)',
+    transition: 'transform 0.1s',
+    marginBottom: 12
+  }}
+                  onClick={()=>setShowCreateModal(true)}
+                  onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                  onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  바로 시작하기
+                </button>
+              </div>
+            )}
+
+            {/* 채팅방이 선택된 경우 기존 로직(인사+페르소나 선택 or 대화) */}
+            {selectedSessionId && !selectedPersona && (
               <>
                 <div className="chat-header">
                   <img src={todakiImg} alt="토닥이" className="chat-todaki-img" />
@@ -486,23 +564,70 @@ const MainPage: React.FC = () => {
                 </div>
               </>
             )}
-            {/* 페르소나 선택 후 대화 (가상 스크롤) */}
-            {selectedPersona && (
+
+            {/* 페르소나 선택 후 대화 영역은 기존과 동일 */}
+            {selectedSessionId && selectedPersona && (
               <>
                 <div
                   ref={scrollContainerRef}
                   className="chat-messages custom-scrollbar"
                   style={{flex: 1, overflowY: 'auto', marginBottom: 18, height: 400, paddingRight: 2}}
                 >
-                  <List
-                    ref={listRef}
-                    height={730}
-                    itemCount={messages.length + (isTyping && streamingText ? 1 : 0)}
-                    itemSize={56}
-                    width={'100%'}
-                  >
-                    {renderRow}
-                  </List>
+                  {messages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        marginTop: idx === 0 ? 0 : -30,
+                        display: 'flex',
+                        justifyContent: msg.from === 'user' ? 'flex-end' : 'flex-start',
+                        alignItems: 'flex-start',
+                        width: '100%',
+                      }}
+                    >
+                      {msg.from === 'persona' || msg.from === 'todaki' ? (
+                        <div className="msg-todaki">
+                          <div className="persona-avatar-block">
+                            <img src={msg.personaImg || todakiImg} alt={msg.personaName || '토닥이'} className="persona-avatar-img" />
+                          </div>
+                          <div className="msg-todaki-content">
+                            <div className="persona-avatar-name">{msg.personaName || '토닥이'}</div>
+                            <span className="persona-bubble" style={{whiteSpace: 'pre-line', maxWidth: '70%', padding: '12px 16px', borderRadius: 16, fontSize: '1rem'}}>{msg.text.replace(/\n/g, '\n')}</span>
+                            {msg.audioUrl && (
+                              <audio controls style={{marginTop: 8, maxWidth: 220}} src={msg.audioUrl}>
+                                오디오 응답을 재생할 수 없습니다.
+                              </audio>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="msg-user">
+                          <span className="user-bubble" style={{whiteSpace: 'pre-line', maxWidth: '70%', padding: '12px 16px', borderRadius: 16, fontSize: '1rem', background: '#f7eac2'}}>{msg.text.replace(/\n/g, '\n')}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {/* 타이핑 중 메시지 표시 */}
+                  {isTyping && streamingText && (
+                    <div
+                      style={{
+                        marginTop: messages.length === 0 ? 0 : 30,
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                        alignItems: 'flex-start',
+                        width: '100%',
+                      }}
+                    >
+                      <div className="msg-todaki">
+                        <div className="persona-avatar-block">
+                          <img src={selectedPersona?.img || todakiImg} alt={selectedPersona?.name || '토닥이'} className="persona-avatar-img" />
+                        </div>
+                        <div className="msg-todaki-content">
+                          <div className="persona-avatar-name">{selectedPersona?.name || '토닥이'}</div>
+                          <span className="persona-bubble" style={{whiteSpace: 'pre-line', maxWidth: '70%', padding: '12px 16px', borderRadius: 16, fontSize: '1rem'}}>{streamingText}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="chat-input-row">
                   <button
@@ -524,7 +649,14 @@ const MainPage: React.FC = () => {
                   <button
                     className="record-btn"
                     title={isRecording ? '녹음 중지' : '음성 입력'}
-                    style={{marginRight:8,background:'none',border:'none',cursor:'pointer',fontSize:22,color:isRecording?'#4A90E2':'#888'}}
+                    style={{
+                      marginRight:8,
+                      background:'none',
+                      border:'none',
+                      cursor:'pointer',
+                      fontSize:22,
+                      color: isRecording ? '#4A90E2' : '#888'
+                    }}
                     onClick={handleMicClick}
                     disabled={isTyping}
                   >
@@ -543,7 +675,26 @@ const MainPage: React.FC = () => {
                 {/* 페르소나 변경 모달 */}
                 {showPersonaModal && (
                   <div className="persona-modal-bg" style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.18)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    <div className="persona-modal" style={{background:'#fff',borderRadius:18,padding:32,boxShadow:'0 2px 16px rgba(0,0,0,0.13)',display:'flex',gap:24}}>
+                    <div className="persona-modal" style={{background:'#fff',borderRadius:18,padding:32,boxShadow:'0 2px 16px rgba(0,0,0,0.13)',display:'flex',gap:24,position:'relative'}}>
+                      {/* 닫기 버튼 */}
+                      <button
+                        onClick={()=>setShowPersonaModal(false)}
+                        style={{
+                          position:'absolute',
+                          top:12,
+                          right:12,
+                          background:'none',
+                          border:'none',
+                          color:'#888',
+                          fontSize: '1.5rem',
+                          fontWeight: 'bold',
+                          cursor:'pointer',
+                          zIndex:10
+                        }}
+                        aria-label="닫기"
+                      >
+                        ×
+                      </button>
                       {personaList.map((p, idx) => (
                         <div key={idx} className="persona-card" onClick={() => handlePersonaChange(p)} style={{cursor:'pointer',minWidth:160,alignItems:'center',display:'flex',flexDirection:'column'}}>
                           <img src={p.img} alt={p.name} className="persona-img" />
@@ -552,7 +703,6 @@ const MainPage: React.FC = () => {
                           <div className="persona-detail">{p.detail.split('\\n').map((line, i) => <div key={i}>{line}</div>)}</div>
                         </div>
                       ))}
-                      <button onClick={()=>setShowPersonaModal(false)} style={{marginLeft:24,background:'#eee',border:'none',borderRadius:8,padding:'8px 18px',cursor:'pointer',fontWeight:500}}>닫기</button>
                     </div>
                   </div>
                 )}

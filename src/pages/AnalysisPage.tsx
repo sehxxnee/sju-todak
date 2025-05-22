@@ -1,56 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../AnalysisPage.css';
 import '../MainPage.css';
 import logoImg from '../assets/logo.png';
 import html2canvas from 'html2canvas';
+import { authFetch } from '../utils/authFetch';
 // import { FaRegSmile, FaRegFrown, FaRegAngry, FaRegMeh, FaRegGrinStars } from 'react-icons/fa';
 
-// 예시 데이터 (props로 받을 수도 있음)
-const reportData = {
-  missionTopic: '친구들과의 관계에서 느끼는 실망과 분노, 그리고 과거의 경험이 현재의 감정에 미치는 영향 탐구',
-  missionEmotion: {
-    '슬픔': 40,
-    '분노': 30,
-    '불안': 15,
-    '기쁨': 10,
-    '짜증': 5
-  },
-  missionDistortion: [
-    {
-      name: '과잉일반화',
-      example: '우리 집이 잘 못 산다는 것을 친구들이 알게 되었을 때 정말 억장이 무너지는 것 같았어.',
-      explanation: '한 번의 경험을 바탕으로 모든 친구들과의 관계에서 부정적인 감정을 일반화하고 있음.',
-      advice: '모든 친구가 같은 반응을 보이지 않을 수 있다는 점을 기억해주세요. 각 상황은 다르니까요.'
-    },
-    {
-      name: '감정적 추론',
-      example: '화나는데 직접 말하기는 뭔가 미안하다랄까.',
-      explanation: '감정을 사실로 받아들이고, 그로 인해 행동을 제한하고 있음.',
-      advice: '감정은 중요한 신호이지만, 반드시 그 감정에 따라 행동할 필요는 없어요. 감정을 표현하는 방법을 찾아보세요.'
-    }
-  ],
-  mainMission: {
-    title: '감정 표현 연습',
-    detail: '내 감정을 솔직하게 표현하는 연습을 해보세요. 매일 감정을 기록하고, 그 감정을 친구에게 전달하는 방법을 고민해보세요. 예를 들어, 하루에 한 번 감정을 적고, 그 중 하나를 친구에게 메시지로 보내는 것입니다. 이 미션은 2주 동안 진행해보세요.',
-    횟수: '매일 1회',
-    기간: '2주'
-  },
-  subMission: [
-    {
-      title: '감정 일기 쓰기',
-      detail: '매일 느낀 감정을 기록하세요. 감정의 원인과 그에 대한 반응을 적어보세요. 이를 통해 자신의 감정을 더 잘 이해할 수 있습니다.'
-    },
-    {
-      title: '긍정적인 경험 회상하기',
-      detail: '하루에 한 번, 긍정적인 경험이나 감정을 떠올려보세요. 그 경험이 왜 긍정적이었는지 적어보세요.'
-    },
-    {
-      title: '친구와의 대화 연습',
-      detail: '가까운 친구와 감정에 대해 이야기하는 시간을 가져보세요. 자신의 감정을 솔직하게 나누고, 친구의 감정도 들어보는 기회를 만들어보세요.'
-    }
-  ]
-};
 // 감정 분석 바 (막대 전체 연회색, 감정값만 노란색)                                                                                                                                                                                                                                                         
 const EmotionBar = ({ label, value }: { label: string, value: number }) => (
   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
@@ -146,10 +102,68 @@ const cardStyleWide = {
 } as React.CSSProperties;
 const dividerStyle = {width:'80%',height:1,background:'#e0e0e0',margin:'48px 0',marginLeft:80,marginRight:80};
 
+type ChatRoom = { text: string; turn: number; chatId: number; isAnalyzable: boolean };
+
+interface Distortion {
+  name: string;
+  example: string;
+  explanation: string;
+  advice: string;
+}
+
 const AnalysisPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedRecord, setSelectedRecord] = useState(0); // 기록 선택 인덱스
+  const [recordList, setRecordList] = useState<ChatRoom[]>([]);
+  const [analysis, setAnalysis] = useState<Record<string, unknown> | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // 채팅방 목록 조회 API 연동
+    const fetchChatRooms = async () => {
+      try {
+        const res = await authFetch('https://test-sso.online/chat', { method: 'GET' });
+        if (res.ok) {
+          const data: { chatId: number; title: string; isAnalyzable?: boolean }[] = await res.json();
+          const mapped: ChatRoom[] = data.map((item) => ({
+            text: item.title,
+            turn: 0,
+            chatId: item.chatId,
+            isAnalyzable: item.isAnalyzable ?? false
+          }));
+          setRecordList(mapped);
+          // 첫 번째 기록 자동 분석 조회 (분석 가능할 때만)
+          const first = mapped.find(r => r.isAnalyzable);
+          if (first) {
+            fetchAnalysis(first.chatId);
+          }
+        }
+      } catch {}
+    };
+    fetchChatRooms();
+  }, []);
+
+  // 분석 결과 조회 함수
+  const fetchAnalysis = async (chatId: number) => {
+    try {
+      const res = await authFetch(`https://test-sso.online/analytics/${chatId}`, { method: 'GET' });
+      if (res.ok) {
+        const data: Record<string, unknown> = await res.json();
+        setAnalysis(data);
+      } else {
+        setAnalysis(null);
+      }
+    } catch {
+      setAnalysis(null);
+    }
+  };
+
+  // 기록 클릭 시 분석 결과 불러오기
+  const handleRecordClick = (idx: number, chatId: number, isActive: boolean) => {
+    if (!isActive) return;
+    setSelectedRecord(idx);
+    fetchAnalysis(chatId);
+  };
 
   // 다운로드 기능 (바깥에 padding 48px 추가)
   const handleDownload = async () => {
@@ -170,15 +184,8 @@ const AnalysisPage: React.FC = () => {
     }
   };
 
-  // 기록 리스트 예시 (turn 필드 추가)
-  const recordList = [
-    { text: '지원이와 학교생활 고민 상담', turn: 18 },
-    { text: '여름씨와 취준 고민 상담', turn: 12 },
-    { text: '서연쌤과 우울증 치료 상담', turn: 21 }
-  ];
-
   return (
-    <div className="analysis-root" style={{background: 'linear-gradient(120deg, #f6f8f7 60%, #e6eefa 100%)'}}>
+    <div className="analysis-root" style={{background: '#fff'}}>
       {/* 네비게이션 바 */}
       <nav className="main-nav" style={{marginBottom:0}}>
         <img src={logoImg} alt="토닥이 로고" className="main-logo" onClick={() => navigate('/main')} style={{cursor:'pointer'}} />
@@ -200,15 +207,17 @@ const AnalysisPage: React.FC = () => {
           </div>
           <div className="record-list">
             {recordList.map((item, idx) => {
-              const isActive = item.turn >= 15;
+              const isActive = item.isAnalyzable;
               return (
                 <div
                   className={`record-item${selectedRecord === idx && isActive ? ' selected' : ''}${!isActive ? ' disabled' : ''}`}
-                  key={idx}
-                  onClick={() => isActive && setSelectedRecord(idx)}
+                  key={item.chatId}
+                  onClick={() => handleRecordClick(idx, item.chatId, isActive)}
                   style={{
                     background: selectedRecord === idx && isActive ? '#FFF7D1' : undefined,
-                    color: selectedRecord === idx && isActive ? '#b48a00' : undefined
+                    color: selectedRecord === idx && isActive ? '#b48a00' : undefined,
+                    cursor: isActive ? 'pointer' : 'not-allowed',
+                    opacity: isActive ? 1 : 0.5
                   }}
                 >
                   {item.text}
@@ -226,70 +235,68 @@ const AnalysisPage: React.FC = () => {
         {/* 우측 레포트 영역 */}
         <section className="chat-section" style={{background:'#fff',borderRadius:16,padding:'48px 0',maxWidth:'90%',margin:'0 auto',flex:1,display:'flex',justifyContent:'center'}}>
           <div ref={reportRef} style={{width: '100%', maxWidth: '90%', margin:'0 auto',background:'#fff',borderRadius:16}}>
-            {/* 상단 제목 + 저장 버튼 */}
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:48}}>
-              <h2 style={{
-                fontSize:'1.25rem', fontWeight:800, color:'#222', lineHeight:1.5,
-                letterSpacing: '-0.5px', textAlign:'left', margin:0, marginLeft:36
-              }}>
-                친구들과의 관계에서 느끼는 실망과 분노,<br />그리고 과거의 경험이 현재의 감정에 미치는 영향 탐구
-              </h2>
-              <button id="report-download-btn" onClick={async () => {
-                const btn = document.getElementById('report-download-btn');
-                if (btn) btn.style.display = 'none';
-                await handleDownload();
-                if (btn) btn.style.display = '';
-              }}
-                style={{
-                  background:'#f7eac2',
-                  border:'none',
-                  borderRadius:12,
-                  padding:'6px 12px',
-                  fontWeight:600,
-                  fontSize:'1rem',
-                  color:'#7a6a2f',
-                  cursor:'pointer',
-                  marginRight:36
-                }}
-              >저장</button>
-            </div>
-            {/* 감정 분석 */}
-            <div style={{marginBottom:12}}><div style={sectionTitleStyle}>감정 분석</div></div>
-            <div style={cardStyleWide}>
-              {Object.entries(reportData.missionEmotion).map(([emotion, value]) => (
-                <EmotionBar key={emotion} label={emotion} value={value} />
-              ))}
-            </div>
-            <div style={dividerStyle} />
-            {/* 미션 */}
-            <div style={{marginBottom:12}}><div style={sectionTitleStyle}>미션</div></div>
-            <div style={cardStyleWide}>
-              <div style={{marginBottom:14, textAlign:'left'}}>
-                <div style={{fontWeight:700, fontSize:'1.07rem', marginBottom:7, textAlign:'left'}}>감정 표현 연습</div>
-                <div style={{color:'#444', marginBottom:8, fontSize:'1.01rem', textAlign:'left'}}>
-                  내 감정을 솔직하게 표현하는 연습을 해보세요. 매일 감정을 기록하고, 그 감정을 친구에게 전달하는 방법을 고민해보세요.<br />
-                  예를 들어, 하루에 한 번 감정을 적고, 그 중 하나를 친구에게 메시지로 보내는 것입니다. 이 미션은 2주 동안 진행해보세요.
+            {analysis ? (
+              <>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:48}}>
+                  <h2 style={{
+                    fontSize:'1.25rem', fontWeight:800, color:'#222', lineHeight:1.5,
+                    letterSpacing: '-0.5px', textAlign:'left', margin:0, marginLeft:36
+                  }}>
+                    {analysis.topic && typeof analysis.topic === 'object' && !Array.isArray(analysis.topic)
+                      ? Object.keys(analysis.topic as Record<string, unknown>).join(', ')
+                      : '분석 결과'}
+                  </h2>
+                  <button id="report-download-btn" onClick={async () => {
+                    const btn = document.getElementById('report-download-btn');
+                    if (btn) btn.style.display = 'none';
+                    await handleDownload();
+                    if (btn) btn.style.display = '';
+                  }}
+                    style={{
+                      background:'#f7eac2',
+                      border:'none',
+                      borderRadius:12,
+                      padding:'6px 12px',
+                      fontWeight:600,
+                      fontSize:'1rem',
+                      color:'#7a6a2f',
+                      cursor:'pointer',
+                      marginRight:36
+                    }}
+                  >저장</button>
                 </div>
-              </div>
-              <ul style={{marginLeft:18, color:'#444', fontSize:'1.01rem', paddingLeft:0, marginBottom:0, textAlign:'left'}}>
-                <li style={{marginBottom:4}}>감정 일기 쓰기</li>
-                <li style={{marginBottom:4}}>긍정적인 경험 회상하기</li>
-                <li>친구와의 대화 연습</li>
-              </ul>
-            </div>
-            <div style={dividerStyle} />
-            {/* 인지 왜곡 */}
-            <div style={{marginBottom:12}}><div style={sectionTitleStyle}>인지 왜곡</div></div>
-            <div style={cardStyleWide}>
-              <div style={{marginBottom:20}}>
-                <div style={{fontWeight:700, color:'#444', marginBottom:4, fontSize:'1.05rem', textAlign:'left'}}>과잉일반화</div>
-                <LeftBubble>&quot;우리 집이 못 산다는 걸 친구들이 알았을 때 정말 억장이 무너지는 기분이었어요.&quot;</LeftBubble>
-                <div style={{color:'#444', fontSize:'1.01rem', marginBottom:5, textAlign:'left'}}>
-                  <span style={{color:'#b48a00',fontWeight:700,marginRight:4}}>&rarr;</span>한 번의 경험을 바탕으로 모든 친구들과의 관계에서 부정적인 감정을 일반화하고 있음
+                {/* 감정 분석 */}
+                <div style={{marginBottom:12}}><div style={sectionTitleStyle}>감정 분석</div></div>
+                <div style={cardStyleWide}>
+                  {analysis.emotion && typeof analysis.emotion === 'object' && !Array.isArray(analysis.emotion) ? (
+                    Object.entries(analysis.emotion as Record<string, number>).map(([emotion, value]) => (
+                      <EmotionBar key={emotion} label={emotion} value={value} />
+                    ))
+                  ) : null}
                 </div>
-                <RightBubble>모든 친구가 같은 반응을 보이지 않을 수 있다는 점을 기억해주세요. 각 상황은 다르니까요.</RightBubble>
-              </div>
-            </div>
+                <div style={dividerStyle} />
+                {/* 인지 왜곡 */}
+                <div style={{marginBottom:12}}><div style={sectionTitleStyle}>인지 왜곡</div></div>
+                <div style={cardStyleWide}>
+                  {Array.isArray(analysis.distortions) && analysis.distortions.length > 0 ? (
+                    (analysis.distortions as Distortion[]).map((d, i) => (
+                      <div key={i} style={{marginBottom:20}}>
+                        <div style={{fontWeight:700, color:'#444', marginBottom:4, fontSize:'1.05rem', textAlign:'left'}}>{d.name}</div>
+                        <LeftBubble>{d.example}</LeftBubble>
+                        <div style={{color:'#444', fontSize:'1.01rem', marginBottom:5, textAlign:'left'}}>
+                          <span style={{color:'#b48a00',fontWeight:700,marginRight:4}}>&rarr;</span>{d.explanation}
+                        </div>
+                        <RightBubble>{d.advice}</RightBubble>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{color:'#888',padding:'16px 0'}}>인지 왜곡 데이터가 없습니다.</div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{padding: 40, color: '#888'}}>분석 결과가 없습니다.</div>
+            )}
           </div>
         </section>
       </div>

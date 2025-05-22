@@ -11,6 +11,8 @@ import TestPage from './pages/TestPage';
 import SignupPage from './pages/SignupPage';
 import GoogleCallbackPage from './pages/GoogleCallbackPage';
 import TestCompletePage from './pages/TestCompletePage';
+import ProfessionalSurveyPage from './pages/ProfessionalSurveyPage';
+import LoginPage from './pages/LoginPage';
 import './App.css';
 
 function AutoRedirect() {
@@ -18,7 +20,7 @@ function AutoRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
     if (localStorage.getItem('accessToken') && location.pathname === '/') {
-      navigate('/initial', { replace: true });
+      navigate('/main', { replace: true });
     }
   }, [location, navigate]);
   return null;
@@ -32,6 +34,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/initial" element={<InitialPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/main" element={<MainPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/goals" element={<GoalsPage />} />
@@ -40,6 +43,7 @@ function App() {
         <Route path="/test" element={<TestPage />} />
         <Route path="/test-complete" element={<TestCompletePage />} />
         <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
+        <Route path="/professional-survey" element={<ProfessionalSurveyPage />} />
       </Routes>
     </Router>
   );

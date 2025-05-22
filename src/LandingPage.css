@@ -50,17 +50,51 @@
   line-height: 1.4;
 }
 
-.google-login-btn {
+.landing-btn {
   width: 270px;
   height: 54px;
   margin-top: 10px;
   border-radius: 30px;
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  background: #fafafa;
-  transition: box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
+  background: #fff;
 }
-.google-login-btn:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+
+.landing-btn-google {
+  border: 2px solid #ddd;
+  color: #222;
+  background: #fff;
+}
+.landing-btn-google:hover {
+  background: #f5f5f5;
+}
+
+.landing-btn-login {
+  border: 2px solid #3a7bd5;
+  background: #3a7bd5;
+  color: #fff;
+}
+.landing-btn-login:hover {
+  background: #2554a3;
+  border-color: #2554a3;
+}
+
+.landing-btn-signup {
+  border: 2px solid #3a7bd5;
+  background: #fff;
+  color: #3a7bd5;
+}
+.landing-btn-signup:hover {
+  background: #3a7bd5;
+  color: #fff;
 }
 
 .landing-right {
@@ -76,3 +110,156 @@
   border-radius: 24px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.10);
 } 
+
+.landing-scroll-sections {
+  width: 100%;
+  background: #f9f9fb;
+  padding: 0;
+}
+
+.landing-section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 64px 16px 48px 16px;
+  text-align: center;
+}
+
+.landing-section h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #222;
+  margin-bottom: 36px;
+  letter-spacing: -1px;
+}
+
+.feature-card-list {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.feature-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  padding: 32px 24px;
+  min-width: 220px;
+  max-width: 260px;
+  text-align: center;
+  font-size: 1.08rem;
+  color: #444;
+  font-weight: 500;
+  margin-bottom: 24px;
+  transition: transform 0.18s;
+}
+.feature-card:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 8px 32px rgba(255,215,114,0.18);
+}
+.feature-icon {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+.feature-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+.feature-desc {
+  color: #888;
+  font-size: 0.98rem;
+}
+
+.landing-howto-section {
+  background: #fffbe9;
+  border-radius: 32px;
+  margin: 48px auto;
+  max-width: 900px;
+  box-shadow: 0 4px 24px rgba(255,215,114,0.08);
+}
+.howto-steps {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.howto-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 600;
+  color: #444;
+}
+.howto-num {
+  width: 38px; height: 38px;
+  background: #FFD772;
+  color: #222;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(255,215,114,0.13);
+}
+
+/* 교차형 기능 섹션 스타일 */
+.feature-section {
+  width: 100%;
+  background: #fff;
+  padding: 80px 0;
+}
+.feature-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  justify-content: center;
+  flex-wrap: wrap !important;
+}
+.feature-content.reverse {
+  flex-direction: row-reverse !important;
+  justify-content: space-between;  /* 또는 생략하고 margin-left:auto 사용 */
+}
+
+.feature-content.reverse .feature-text {
+  text-align: right;
+  /* 만약 space-between 대신 center 유지하려면 아래 한 줄 추가 */
+  /* margin-left: auto; */
+}
+.feature-text {
+  flex: 1 1 380px;
+  min-width: 280px;
+  text-align: left;
+}
+.feature-text h2 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin-bottom: 18px;
+  color: #111;
+}
+.feature-text p {
+  font-size: 1.18rem;
+  color: #333;
+  line-height: 1.7;
+  font-weight: 400;
+}
+.feature-img {
+  flex: 1 1 420px;
+  min-width: 280px;
+  max-width: 480px;
+  border-radius: 32px;
+  box-shadow: 0 4px 32px rgba(80,80,120,0.08);
+  background: #f7f7fa;
+  object-fit: contain;
+}
+/* @media (max-width: 900px) {
+  .feature-content, .feature-content.reverse {
+    flex-direction: column !important;
+    gap: 32px;
+    text-align: center;
+  }
+  .feature-text { text-align: center; }
+} */
