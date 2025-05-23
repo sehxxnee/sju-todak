@@ -5,7 +5,8 @@ import '../MainPage.css';
 import logoImg from '../assets/logo.png';
 import todakiImg from '../assets/todaki.png';
 import { authFetch } from '../utils/authFetch';
-
+import { requestNotificationPermission } from '../utils/firebase';
+import {useAlert} from '../AlertContext'
 interface Message {
   from: 'user' | 'persona' | 'todaki';
   text: string;
@@ -102,7 +103,7 @@ const MainPage: React.FC = () => {
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [isVoiceInput, setIsVoiceInput] = useState(false);
-
+  const {show} = useAlert();
   const toggleRecord = () => {
     setShowRecord(!showRecord);
   };
@@ -181,17 +182,17 @@ const MainPage: React.FC = () => {
       }
       if (res.ok) {
         const data = await res.json();
-        let i = 0;
+      let i = 0;
         const fullText = data.botResponse;
         setStreamingText('');
         const typingInterval = setInterval(() => {
-          setStreamingText(fullText.slice(0, i + 1));
+        setStreamingText(fullText.slice(0, i + 1));
           i++;
           if (i === fullText.length) {
             clearInterval(typingInterval);
-            setIsTyping(false);
-            setMessages(prev => [
-              ...prev,
+          setIsTyping(false);
+          setMessages(prev => [
+            ...prev,
               {
                 from: 'persona',
                 text: fullText,
@@ -199,15 +200,15 @@ const MainPage: React.FC = () => {
                 personaImg: personaList.find(p => p.name === data.persona)?.img,
                 audioUrl: data.audioResponse
               }
-            ]);
-            setStreamingText('');
-          }
+          ]);
+          setStreamingText('');
+        }
         }, 30);
       } else {
-        alert('메시지 전송 실패');
+        show('메시지 전송 실패');
       }
     } catch {
-      alert('오류 발생');
+      show('오류 발생');
     }
   };
 
@@ -218,7 +219,7 @@ const MainPage: React.FC = () => {
   // 음성 인식 시작/종료
   const handleMicClick = () => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert('이 브라우저는 음성 인식을 지원하지 않습니다.');
+      show('이 브라우저는 음성 인식을 지원하지 않습니다.');
       return;
     }
     if (isRecording) {
@@ -239,7 +240,7 @@ const MainPage: React.FC = () => {
     };
     recognition.onerror = () => {
       setIsRecording(false);
-      alert('음성 인식에 실패했습니다.');
+      show('음성 인식에 실패했습니다.');
     };
     recognition.onend = () => setIsRecording(false);
     recognitionRef.current = recognition;
@@ -261,13 +262,13 @@ const MainPage: React.FC = () => {
         body: JSON.stringify({ persona: persona.name }),
       });
       if (res.ok) {
-        setSelectedPersona(persona);
-        setShowPersonaModal(false);
+    setSelectedPersona(persona);
+    setShowPersonaModal(false);
       } else {
-        alert('페르소나 변경 실패');
+        show('페르소나 변경 실패');
       }
     } catch {
-      alert('오류 발생');
+      show('오류 발생');
     }
   };
 
@@ -281,15 +282,15 @@ const MainPage: React.FC = () => {
         body: JSON.stringify({ persona: persona.name }),
       });
       if (res.ok) {
-        setSelectedPersona(persona);
-        setMessages([
-          { from: 'persona', text: `${persona.name}입니다! 무엇이 궁금한가요?`, personaName: persona.name, personaImg: persona.img }
-        ]);
+    setSelectedPersona(persona);
+    setMessages([
+      { from: 'persona', text: `${persona.name}입니다! 무엇이 궁금한가요?`, personaName: persona.name, personaImg: persona.img }
+    ]);
       } else {
-        alert('페르소나 변경 실패');
+        show('페르소나 변경 실패');
       }
     } catch {
-      alert('오류 발생');
+      show('오류 발생');
     }
   };
 
@@ -333,12 +334,12 @@ const MainPage: React.FC = () => {
       const res = await authFetch(`${API_BASE}/${sessionId}`, { method: 'DELETE' });
       if (res.ok) {
         await fetchChatRooms(); // 삭제 성공 시 목록 재조회
-        alert('채팅방이 삭제되었습니다.');
+        show('채팅방이 삭제되었습니다.');
       } else {
-        alert('삭제에 실패했습니다.');
+        show('삭제에 실패했습니다.');
       }
     } catch (e) {
-      alert('오류가 발생했습니다.');
+      show('오류가 발생했습니다.');
     }
   };
 
@@ -352,14 +353,14 @@ const MainPage: React.FC = () => {
         res = await authFetch('/calendar/db-events');
       }
       if (!res.ok) {
-        alert('API 요청 실패: ' + res.status);
+        show('API 요청 실패: ' + res.status);
         return;
       }
       const data = await res.json();
       setCalendarEvents(data.events || []);
       setIsGoogleConnected(true);
     } catch (err) {
-      alert('구글 캘린더 연동에 실패했습니다.');
+      show('구글 캘린더 연동에 실패했습니다.');
     }
   };
 
@@ -382,10 +383,10 @@ const MainPage: React.FC = () => {
         setSelectedPersona(null); // 페르소나 선택 화면으로
         // 최초 생성된 채팅방이면 기록을 불러오지 않음 (fetchChatMessages 호출 X)
       } else {
-        alert('채팅방 생성 실패');
+        show('채팅방 생성 실패');
       }
     } catch {
-      alert('오류 발생');
+      show('오류 발생');
     }
   };
 
@@ -398,14 +399,14 @@ const MainPage: React.FC = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        alert('분석 결과: ' + (typeof data === 'string' ? data : JSON.stringify(data)));
+        show('분석 결과: ' + (typeof data === 'string' ? data : JSON.stringify(data)));
       } else if (res.status === 400) {
-        alert('15턴(메시지) 이상 대화해야 분석이 가능합니다.');
+        show('15턴(메시지) 이상 대화해야 분석이 가능합니다.');
       } else {
-        alert('분석 요청 실패');
+        show('분석 요청 실패');
       }
     } catch {
-      alert('오류 발생');
+      show('오류 발생');
     }
   };
 
@@ -415,39 +416,30 @@ const MainPage: React.FC = () => {
         <button className="menu-toggle-btn" onClick={toggleRecord}>
           ☰
         </button>
-        <img src={logoImg} alt="토닥이 로고" className="main-logo" onClick={() => navigate('/main')} style={{cursor:'pointer'}} />
+        <img src={logoImg} alt="토닥이 로고" className="main-logo" onClick={() => navigate('/')} style={{cursor:'pointer'}} />
         <div className="main-menu">
           <span onClick={() => navigate('/main')} style={{cursor:'pointer'}}>채팅</span>
           <span onClick={() => navigate('/goals')} style={{cursor:'pointer'}}>미션</span>
           <span onClick={() => navigate('/analysis')} style={{cursor:'pointer'}}>분석</span>
           <span onClick={() => navigate('/calendar')} style={{cursor:'pointer'}}>캘린더</span>
-          <span onClick={() => navigate('/test')} style={{cursor:'pointer'}}>심리검사</span>
+          <span onClick={() => navigate('/professional-survey')} style={{cursor:'pointer'}}>심리검사</span>
         </div>
-        <span className="profile-menu" style={{cursor:'pointer', marginLeft: 'auto', paddingRight: '20px'}} onClick={() => navigate('/profile')}>프로필</span>
         <button
-  style={{
-    marginLeft: 16,
-    padding: '8px 18px',
-    borderRadius: 12,
-    background: '#FFD600',
-    color: '#222',
-    fontWeight: 600,
-    border: 'none',
-    cursor: 'pointer',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-    fontSize: '1rem',
-  }}
-  onClick={async () => {
-    const token = await requestNotificationPermission();
-    if (token) {
-      alert('알림이 허용되었습니다!');
-    } else {
-      alert('알림 권한이 거부되었거나 이미 허용됨');
-    }
-  }}
->
-  알림 허용하기
-</button>
+          onClick={requestNotificationPermission}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#7a6a2f',
+            fontWeight: 500,
+            fontSize: '1.05rem',
+            cursor: 'pointer',
+            marginRight: 30,
+            padding: 0
+          }}
+        >
+          알림 허용하기
+        </button>
+        <span className="profile-menu" style={{cursor:'pointer', marginLeft: 'auto', paddingRight: '20px', marginRight: 30, color: '#7a6a2f', fontWeight: 500}} onClick={() => navigate('/profile')}>프로필</span>
       </nav>
       <div className="mainpage-content">
         <aside className={`record-section ${showRecord ? 'show' : ''}`}>
@@ -616,7 +608,7 @@ const MainPage: React.FC = () => {
                         alignItems: 'flex-start',
                         width: '100%',
                       }}
-                    >
+                  >
                       <div className="msg-todaki">
                         <div className="persona-avatar-block">
                           <img src={selectedPersona?.img || todakiImg} alt={selectedPersona?.name || '토닥이'} className="persona-avatar-img" />

@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoImg from '../assets/logo.png';
 import googleLoginImg from '../assets/google_login.png';
-
+import {useAlert} from '../AlertContext'
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
+  const {show} = useAlert();
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -38,10 +38,10 @@ const LoginPage: React.FC = () => {
         }
       } else {
         const data = await res.json();
-        alert(data.message || '로그인에 실패했습니다.');
+        show(data.message || '로그인에 실패했습니다.');
       }
     } catch {
-      alert('서버 오류로 로그인에 실패했습니다.');
+      show('서버 오류로 로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -130,25 +130,19 @@ const LoginPage: React.FC = () => {
           disabled={loading}
           style={{
             width: '100%',
-            padding: '14px 0',
-            background: '#FFD600',
-            color: '#ffffff',
-            border: '2px solid #3a7bd5',
+            padding: '18px 0',
+            background: '#FFD772',
+            color: '#222',
+            border: 'none',
             borderRadius: 16,
-            fontSize: '1.08rem',
-            fontWeight: 600,
+            fontWeight: 700,
+            fontSize: '1.18rem',
             cursor: 'pointer',
-            boxShadow: '0 1px 6px rgba(255,214,0,0.08)',
-            marginTop: 0,
-            opacity: loading ? 0.6 : 1,
             transition: 'background 0.2s, color 0.2s',
+            opacity: loading ? 0.6 : 1,
           }}
-          onMouseOver={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = '#3a7bd5';
-          }}
-          onMouseOut={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = '#3a7bd5';
-          }}
+          onMouseOver={(e) => (e.currentTarget.style.background = '#FFC940')}
+          onMouseOut={(e) => (e.currentTarget.style.background = '#FFD772')}
         >
           {loading ? '로그인 중...' : '로그인'}
         </button>

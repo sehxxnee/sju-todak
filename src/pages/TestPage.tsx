@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import '../InitialPage.css';
 import logoImg from '../assets/logo.png';
 import todakiImg from '../assets/todaki.png';
-
+import {useAlert} from '../AlertContext'
 // 카테고리 라벨 → 코드 변환 함수
 function getCategoryCode(label: string) {
   const map: Record<string, string> = {
@@ -36,7 +36,7 @@ const RADIO_SELECTED_BORDER = 3;
 const RADIO_INNER_SIZE = 24;
 const RADIO_COLOR = '#FFD772';
 const RADIO_GRAY = '#d1d1d1';
-
+const {show} = useAlert();
 const CustomRadioSlider: React.FC<{
   value: number | null;
   onChange: (v: number) => void;
@@ -44,7 +44,7 @@ const CustomRadioSlider: React.FC<{
   max?: number;
 }> = ({ value, onChange, min = 1, max = 5 }) => {
   const minNum = Number(min);
-  const maxNum = Number(max);
+  const maxNum = Number(max); 
   const range = Array.from({ length: maxNum - minNum + 1 }, (_, i) => minNum + i);
   console.log('CustomRadioSlider range:', { minNum, maxNum, range });
   return (
@@ -240,8 +240,8 @@ const TestPage: React.FC = () => {
       const data = await res.json();
       navigate('/test-complete', { state: { ...location.state, result: data } });
     } catch (e) {
-      if (e instanceof Error) alert(e.message || '제출 실패');
-      else alert('제출 실패');
+      if (e instanceof Error) show(e.message || '제출 실패');
+      else show('제출 실패');
     }
   };
 
@@ -267,8 +267,8 @@ const TestPage: React.FC = () => {
   if (error) return <div style={{ padding: 80, color: 'red', textAlign: 'center' }}>{error}</div>;
 
   return (
-    <div className="initial-root">
-      <nav className="main-nav">
+    <div className="analysis-root" style={{ background: '#fff' }}>
+      <nav className="main-nav" style={{ marginBottom: 0 }}>
         <img
           src={logoImg}
           alt="토닥이 로고"
@@ -276,7 +276,22 @@ const TestPage: React.FC = () => {
           onClick={() => navigate('/main')}
           style={{ cursor: 'pointer' }}
         />
+        <div className="main-menu">
+          <span onClick={() => navigate('/main')} style={{ cursor: 'pointer' }}>채팅</span>
+          <span onClick={() => navigate('/goals')} style={{ cursor: 'pointer' }}>미션</span>
+          <span onClick={() => navigate('/analysis')} style={{ cursor: 'pointer' }}>분석</span>
+          <span onClick={() => navigate('/calendar')} style={{ cursor: 'pointer' }}>캘린더</span>
+          <span onClick={() => navigate('/professional-survey')} style={{ cursor: 'pointer' }}>심리검사</span>
+        </div>
+        <span
+          className="profile-menu"
+          style={{ cursor: 'pointer', marginLeft: 'auto', paddingRight: '20px' }}
+          onClick={() => navigate('/profile')}
+        >
+          프로필
+        </span>
       </nav>
+      <div style={{ width: '100%', height: 36, background: '#fff' }}></div>
       <div className="initial-container" style={{ flexDirection: 'row', gap: '32px', maxWidth: 1200, minWidth: 0 }}>
         {/* 왼쪽: 채팅 메시지 영역 */}
         <div className="chat-section">
@@ -315,6 +330,7 @@ const TestPage: React.FC = () => {
               marginBottom: 24,
               fontWeight: 400,
               fontSize: '0.9rem',
+              color: '#666',
             }}
           >
             {currentPage + 1} / {Math.ceil(questions.length / questionsPerPage)}
@@ -338,9 +354,9 @@ const TestPage: React.FC = () => {
                     alignItems: 'flex-start',
                     gap: 18,
                     padding: '24px',
-                    background: '#f7f7f7',
+                    background: '#fffbe9',
                     borderRadius: 12,
-                    boxShadow: 'none',
+                    boxShadow: '0 4px 16px rgba(255,215,114,0.08)',
                     border: '1.5px solid #f2f2f2',
                     marginBottom: 24,
                     minWidth: 0,
@@ -390,13 +406,37 @@ const TestPage: React.FC = () => {
               marginTop: 32,
             }}
           >
-            <button className="submit-btn" onClick={handlePrev} disabled={currentPage === 0}>
+            <button
+              className="submit-btn"
+              onClick={handlePrev}
+              disabled={currentPage === 0}
+              style={{
+                background: '#eee',
+                border: 'none',
+                borderRadius: 8,
+                padding: '12px 32px',
+                fontWeight: 500,
+                fontSize: '1.1rem',
+                cursor: 'pointer',
+                color: '#444',
+              }}
+            >
               이전
             </button>
             <button
               className="submit-btn"
               onClick={handleNext}
               disabled={currentQuestions.some((_, idx) => answers[currentPage * questionsPerPage + idx] === null)}
+              style={{
+                background: '#FFD772',
+                border: 'none',
+                borderRadius: 8,
+                padding: '12px 32px',
+                fontWeight: 500,
+                fontSize: '1.1rem',
+                cursor: 'pointer',
+                color: '#222',
+              }}
             >
               {currentPage === Math.ceil(questions.length / questionsPerPage) - 1 ? '완료' : '다음'}
             </button>

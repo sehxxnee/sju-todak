@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "format": "prettier --write --cache src/**/*",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "postbuild": "cp public/firebase-messaging-sw.js dist/"
   },
   "dependencies": {
     "@types/react-calendar": "^3.9.0",

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../CalendarPage.css';
+import {useAlert} from '../AlertContext'
 import logoImg from '../assets/logo.png';
 import googleLoginImg from '../assets/google_login.png';
 import googleCalendarImg from '../assets/google-calendar.png';
@@ -30,7 +31,7 @@ const CalendarPage: React.FC = () => {
   const year = 2025;
   const daysInMonth = 31;
   const firstDayOfWeek = 4; // 1일이 목요일(0:일~6:토)
-
+  const {show} = useAlert();
   // 구글 연동 상태 및 일정 데이터
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
   const [scheduleData, setScheduleData] = useState<
@@ -103,11 +104,11 @@ const CalendarPage: React.FC = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-        alert('구글 캘린더 연동에 실패했습니다.');
+        show('구글 캘린더 연동에 실패했습니다.');
         return;
       }
       // 연동 성공 시 DB 이벤트 다시 불러오기
-      setIsGoogleConnected(true);
+    setIsGoogleConnected(true);
       // DB 이벤트 재조회
       const dbRes = await fetch(`${API_BASE}/calendar/db-events`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -127,7 +128,7 @@ const CalendarPage: React.FC = () => {
         }
       }
     } catch {
-      alert('구글 캘린더 연동에 실패했습니다.');
+      show('구글 캘린더 연동에 실패했습니다.');
     }
   };
 
@@ -163,7 +164,7 @@ const CalendarPage: React.FC = () => {
       if (!res.ok) throw new Error('감정 저장 실패');
       // 성공 시 UI에 반영 (이미 setModalEmotions로 반영됨)
     } catch {
-      alert('감정 저장에 실패했습니다.');
+      show('감정 저장에 실패했습니다.');
     }
   };
 
@@ -231,33 +232,15 @@ const CalendarPage: React.FC = () => {
     <div className="calendar-root">
       {/* 네비게이션 바 */}
       <nav className="main-nav">
-        <img
-          src={logoImg}
-          alt="토닥이 로고"
-          className="main-logo"
-          onClick={() => navigate('/main')}
-          style={{ cursor: 'pointer' }}
-        />
+        <img src={logoImg} alt="토닥이 로고" className="main-logo" onClick={() => navigate('/main')} style={{cursor:'pointer'}} />
         <div className="main-menu">
-          <span onClick={() => navigate('/main')} style={{ cursor: 'pointer' }}>
-            채팅
-          </span>
-          <span onClick={() => navigate('/goals')} style={{ cursor: 'pointer' }}>
-            미션
-          </span>
-          <span onClick={() => navigate('/analysis')} style={{ cursor: 'pointer' }}>
-            분석
-          </span>
-          <span onClick={() => navigate('/calendar')} style={{ cursor: 'pointer' }}>
-            캘린더
-          </span>
-          <span onClick={() => navigate('/professional-survey')} style={{ cursor: 'pointer' }}>
-            심리검사
-          </span>
+          <span onClick={() => navigate('/main')} style={{cursor:'pointer'}}>채팅</span>
+          <span onClick={() => navigate('/goals')} style={{cursor:'pointer'}}>미션</span>
+          <span onClick={() => navigate('/analysis')} style={{cursor:'pointer'}}>분석</span>
+          <span onClick={() => navigate('/calendar')} style={{cursor:'pointer'}}>캘린더</span>
+          <span onClick={() => navigate('/professional-survey')} style={{cursor:'pointer'}}>심리검사</span>
         </div>
-        <span className="profile-menu" style={{ cursor: 'pointer' }} onClick={() => navigate('/profile')}>
-          프로필
-        </span>
+        <span className="profile-menu" style={{cursor:'pointer', marginLeft: 'auto', paddingRight: '20px', marginRight: 30}} onClick={() => navigate('/profile')}>프로필</span>
       </nav>
       <div className="calendar-container">
         {loading ? (
@@ -455,7 +438,7 @@ const CalendarPage: React.FC = () => {
                   {modalSchedules.map((s) => (
                     <div
                       key={s.eventId}
-                      style={{
+                style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: 16,
@@ -470,9 +453,9 @@ const CalendarPage: React.FC = () => {
                       </div>
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                         {emotionList.map((emotion) => (
-                          <button
-                            key={emotion}
-                            style={{
+                  <button
+                    key={emotion}
+                    style={{
                               width: 32,
                               height: 32,
                               borderRadius: '50%',
@@ -527,7 +510,7 @@ const CalendarPage: React.FC = () => {
                   disabled={Object.keys(modalEmotions).length === 0}
                 >
                   저장
-                </button>
+                  </button>
               </div>
             </div>
           </div>
@@ -537,4 +520,4 @@ const CalendarPage: React.FC = () => {
   );
 };
 
-export default CalendarPage;
+export default CalendarPage; 

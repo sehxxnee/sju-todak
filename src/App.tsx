@@ -14,7 +14,8 @@ import TestCompletePage from './pages/TestCompletePage';
 import ProfessionalSurveyPage from './pages/ProfessionalSurveyPage';
 import LoginPage from './pages/LoginPage';
 import './App.css';
-
+import { onMessageListener } from './utils/firebase';
+import { AlertProvider } from './AlertContext';
 function AutoRedirect() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,14 +28,25 @@ function AutoRedirect() {
 }
 
 function App() {
+  useEffect(() => {
+    onMessageListener().then((payload: any) => {
+      if (payload?.notification && Notification.permission === 'granted') {
+        new Notification(payload.notification.title || '', {
+          body: payload.notification.body || '',
+          icon: '/assets/notification-icon.png',
+        });
+      }
+    });
+  }, []);
   return (
-    <Router>
-      <AutoRedirect />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/initial" element={<InitialPage />} />
-        <Route path="/login" element={<LoginPage />} />
+    <AlertProvider>
+      <Router>
+        <AutoRedirect />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/initial" element={<InitialPage />} />
+          <Route path="/login" element={<LoginPage />} />
         <Route path="/main" element={<MainPage />} />
         <Route path="/analysis" element={<AnalysisPage />} />
         <Route path="/goals" element={<GoalsPage />} />
@@ -43,9 +55,10 @@ function App() {
         <Route path="/test" element={<TestPage />} />
         <Route path="/test-complete" element={<TestCompletePage />} />
         <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
-        <Route path="/professional-survey" element={<ProfessionalSurveyPage />} />
-      </Routes>
-    </Router>
+          <Route path="/professional-survey" element={<ProfessionalSurveyPage />} />
+        </Routes>
+      </Router>
+    </AlertProvider>
   );
 }
 

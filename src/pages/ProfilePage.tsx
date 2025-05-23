@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import NavBar from '../components/NavBar';
+import { useNavigate } from 'react-router-dom';
 import defaultProfileImg from '../assets/profile_default.png';
-
+import {useAlert} from '../AlertContext'  
 const API_BASE = 'https://test-sso.online';
-const API_BASE2 = 'http://localhost:8080';
 const ProfilePage: React.FC = () => {
   const [profileImg, setProfileImg] = useState<string>(defaultProfileImg);
   const [name, setName] = useState('');
@@ -12,7 +12,8 @@ const ProfilePage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [editMode, setEditMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const navigate = useNavigate();
+  const {show} = useAlert();
   // 사용자 정보 조회
   useEffect(() => {
     const fetchProfile = async () => {
@@ -23,14 +24,20 @@ const ProfilePage: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('사용자 정보를 불러오지 못했습니다.');
-        const data = (await res.json()) as { name?: string; age?: number; gender?: string; email?: string; profileImageUrl?: string };
+        const data = (await res.json()) as {
+          name?: string;
+          age?: number;
+          gender?: string;
+          email?: string;
+          profileImageUrl?: string;
+        };
         setName(data.name || '');
         setAge(data.age ? String(data.age) : '');
         setGender(data.gender || ''); // 상태는 'male'/'female'로 유지
         setEmail(data.email || '');
         setProfileImg(data.profileImageUrl || defaultProfileImg);
       } catch {
-        alert('사용자 정보를 불러오지 못했습니다.');
+        show('사용자 정보를 불러오지 못했습니다.');
       }
     };
     fetchProfile();
@@ -52,9 +59,9 @@ const ProfilePage: React.FC = () => {
       });
       if (!res.ok) throw new Error('수정에 실패했습니다.');
       setEditMode(false);
-      alert('수정이 완료되었습니다.');
+      show('수정이 완료되었습니다.');
     } catch {
-      alert('수정에 실패했습니다.');
+      show('수정에 실패했습니다.');
     }
   };
 
@@ -160,12 +167,17 @@ const ProfilePage: React.FC = () => {
               value={age}
               onChange={(e) => setAge(e.target.value)}
               disabled={!editMode}
+              min={0}
               style={{
                 padding: '10px 12px',
                 border: '1.5px solid #eee',
                 borderRadius: 8,
                 fontSize: '1rem',
                 background: editMode ? '#fff' : '#f8f8f8',
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLInputElement;
+                if (Number(target.value) < 0) target.value = '0';
               }}
             />
             <label style={{ fontWeight: 500, fontSize: '1.05rem', color: '#333' }}>성별</label>
@@ -189,10 +201,10 @@ const ProfilePage: React.FC = () => {
           <button
             style={{
               marginTop: 32,
-              width: '100%',
+              width: '80%',
               padding: '12px 0',
-              background: '#888',
-              color: '#fff',
+              background: '#f7eac2',
+              color: '#7a6a2f',
               border: 'none',
               borderRadius: 8,
               fontSize: '1.08rem',
@@ -200,6 +212,8 @@ const ProfilePage: React.FC = () => {
               cursor: 'pointer',
               transition: 'background 0.2s',
             }}
+            onMouseOver={(e) => (e.currentTarget.style.background = '#FFC940')}
+            onMouseOut={(e) => (e.currentTarget.style.background = '#FFD772')}
             onClick={editMode ? handleComplete : handleEdit}
           >
             {editMode ? '완료' : '수정'}
@@ -208,11 +222,11 @@ const ProfilePage: React.FC = () => {
       </div>
       {/* 하단 로그아웃 버튼 */}
       <button
-        style={{
+        style={{ 
           margin: '48px auto 0 auto',
           display: 'block',
-          background: '#888',
-          color: '#fff',
+          background: '#f7eac2',
+          color: '#7a6a2f',
           border: 'none',
           borderRadius: 8,
           fontSize: '1.08rem',
@@ -221,6 +235,12 @@ const ProfilePage: React.FC = () => {
           width: 320,
           cursor: 'pointer',
           transition: 'background 0.2s',
+        }}
+        onMouseOver={(e) => (e.currentTarget.style.background = '#FFC940')}
+        onMouseOut={(e) => (e.currentTarget.style.background = '#FFD772')}
+        onClick={() => {
+          localStorage.removeItem('accessToken');
+          navigate('/');
         }}
       >
         로그아웃

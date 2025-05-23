@@ -4,147 +4,92 @@ import '../GoalsPage.css';
 import logoImg from '../assets/logo.png';
 import todakiImg from '../assets/todaki.png';
 
-interface Goal {
+interface Mission {
   id: number;
   title: string;
-  category: string;
+  missionExp: number;
   progress: number;
+  frequency?: string;
   isCompleted: boolean;
 }
 
-const missionPool = [
-  { title: '매일 30분 운동하기', category: '건강' },
-  { title: '일주일에 책 1권 읽기', category: '학습' },
-  { title: '하루 8잔 물 마시기', category: '건강' },
-  { title: '감정 일기 쓰기', category: '마음' },
-  { title: '긍정 경험 1개 기록', category: '마음' },
-  { title: '친구에게 안부 문자 보내기', category: '관계' },
-  { title: '명상 10분 하기', category: '마음' },
-  { title: '하루 1번 산책하기', category: '건강' },
-];
-
 const GoalsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [activeTab, setActiveTab] = useState<'progress' | 'done'>('progress');
-  const [showCertModal, setShowCertModal] = useState<{ open: boolean; goalId: number | null }>({
-    open: false,
-    goalId: null,
+  const [missions, setMissions] = useState<{ progressing: Mission[]; completed: Mission[] }>({
+    progressing: [],
+    completed: [],
   });
+  const [activeTab, setActiveTab] = useState<'progress' | 'done'>('progress');
+  const [showCertModal, setShowCertModal] = useState<{ open: boolean; missionId: number | null }>({
+    open: false,
+    missionId: null,
+  });
+  const [level, setLevel] = useState(1);
+  const [exp, setExp] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  // 1. 미션 목록 불러오기
-  const fetchGoals = async () => {
+  const API_URL = 'https://test-sso.online';
+
+  // 미션/경험치 불러오기
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/missions', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setGoals(data);
-      }
+      const [missionsRes, expRes] = await Promise.all([
+        fetch(`${API_URL}/missions`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+        }).then((r) => r.json()),
+        fetch(`${API_URL}/users/exp`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+        }).then((r) => r.json()),
+      ]);
+      setMissions(missionsRes);
+      setLevel(expRes.level);
+      setExp(expRes.exp);
     } catch {
       // 에러 처리 필요시 추가
     }
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchGoals();
+    fetchData();
   }, []);
 
-  // 2. 인증(진척도 증가)
+  // 미션 인증(완료)
   const handleCertConfirm = async () => {
-    if (showCertModal.goalId !== null) {
-      await fetch(`/missions/${showCertModal.goalId}/progress`, {
+    if (showCertModal.missionId !== null) {
+      // 1. 진행도 1 증가 (목표치 도달 시 경험치/레벨도 자동 지급됨)
+      await fetch(`${API_URL}/missions/${showCertModal.missionId}/progress`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
       });
-      fetchGoals();
+      // 2. 미션/경험치 UI 갱신
+      await fetchData();
     }
-    setShowCertModal({ open: false, goalId: null });
+    setShowCertModal({ open: false, missionId: null });
   };
 
   // 미션 인증(+ 버튼)
-  const handleCertClick = (goalId: number) => {
-    setShowCertModal({ open: true, goalId });
-  };
-
-  // 미션 재발급
-  const handleReissue = (goalId: number) => {
-    setGoals((prev) => {
-      const goalToReissue = prev.find((g) => g.id === goalId);
-      if (!goalToReissue) return prev;
-
-      // 랜덤 미션 부여(중복X)
-      const usedTitles = prev.filter((g) => g.id !== goalId).map((g) => g.title);
-      const candidates = missionPool.filter((m) => !usedTitles.includes(m.title));
-      const newMission =
-        candidates.length > 0
-          ? candidates[Math.floor(Math.random() * candidates.length)]
-          : { title: '새로운 미션', category: '기타' };
-
-      return prev.map((g) =>
-        g.id === goalId
-          ? { id: Date.now(), title: newMission.title, category: newMission.category, progress: 0, isCompleted: false }
-          : g,
-      );
-    });
-  };
-
-  // 새 미션 발급
-  const handleNewMission = () => {
-    const usedTitles = goals.map((g) => g.title);
-    const candidates = missionPool.filter((m) => !usedTitles.includes(m.title));
-    const newMission =
-      candidates.length > 0
-        ? candidates[Math.floor(Math.random() * candidates.length)]
-        : { title: '새로운 미션', category: '기타' };
-
-    setGoals((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        title: newMission.title,
-        category: newMission.category,
-        progress: 0,
-        isCompleted: false,
-      },
-    ]);
+  const handleCertClick = (missionId: number) => {
+    setShowCertModal({ open: true, missionId });
   };
 
   // 탭 필터링
-  const progressGoals = goals.filter((g) => !g.isCompleted);
-  const doneGoals = goals.filter((g) => g.isCompleted);
+  const progressMissions = missions.progressing;
+  const doneMissions = missions.completed;
 
   return (
     <div className="goalspage-root">
       <nav className="main-nav">
-        <img
-          src={logoImg}
-          alt="토닥이 로고"
-          className="main-logo"
-          onClick={() => navigate('/main')}
-          style={{ cursor: 'pointer' }}
-        />
+        <img src={logoImg} alt="토닥이 로고" className="main-logo" onClick={() => navigate('/main')} style={{cursor:'pointer'}} />
         <div className="main-menu">
-          <span onClick={() => navigate('/main')} style={{ cursor: 'pointer' }}>
-            채팅
-          </span>
-          <span onClick={() => navigate('/goals')} style={{ cursor: 'pointer' }}>
-            미션
-          </span>
-          <span onClick={() => navigate('/analysis')} style={{ cursor: 'pointer' }}>
-            분석
-          </span>
-          <span onClick={() => navigate('/calendar')} style={{ cursor: 'pointer' }}>
-            캘린더
-          </span>
-          <span onClick={() => navigate('/test')} style={{ cursor: 'pointer' }}>
-            심리검사
-          </span>
+          <span onClick={() => navigate('/main')} style={{cursor:'pointer'}}>채팅</span>
+          <span onClick={() => navigate('/goals')} style={{cursor:'pointer'}}>미션</span>
+          <span onClick={() => navigate('/analysis')} style={{cursor:'pointer'}}>분석</span>
+          <span onClick={() => navigate('/calendar')} style={{cursor:'pointer'}}>캘린더</span>
+          <span onClick={() => navigate('/professional-survey')} style={{cursor:'pointer'}}>심리검사</span>
         </div>
-        <span className="profile-menu" style={{ cursor: 'pointer' }} onClick={() => navigate('/profile')}>
-          프로필
-        </span>
+        <span className="profile-menu" style={{cursor:'pointer', marginLeft: 'auto', paddingRight: '20px', marginRight: 30}} onClick={() => navigate('/profile')}>프로필</span>
       </nav>
 
       <div className="goalspage-content">
@@ -164,86 +109,83 @@ const GoalsPage: React.FC = () => {
             </button>
           </div>
           <div className="goals-list">
-            {(activeTab === 'progress' ? progressGoals : doneGoals).length > 0 ? (
-              (activeTab === 'progress' ? progressGoals : doneGoals).map((goal) => (
-                <div key={goal.id} className="goal-item">
-                  <div
-                    className="goal-info"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                  >
-                    <div>
-                      <h3>{goal.title}</h3>
-                    </div>
-                    {activeTab === 'progress' && (
-                      <div style={{ display: 'flex', gap: 8 }}>
+            {loading ? (
+              <div style={{ color: '#bbb', marginTop: 40 }}>로딩 중...</div>
+            ) : (activeTab === 'progress' ? progressMissions : doneMissions).length > 0 ? (
+              (activeTab === 'progress' ? progressMissions : doneMissions).map((mission) => {
+                // 진행률 계산
+                const target = mission.frequency ? parseInt(mission.frequency.match(/\d+/)?.[0] || '1', 10) : 1;
+                const percent = Math.round(((mission.progress ?? 0) / target) * 100);
+                return (
+                  <div key={mission.id} className="goal-item">
+                    <div
+                      className="goal-info"
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <h3 style={{ margin: 0 }}>{mission.title}</h3>
+                        <div style={{ color: '#bfae6a', fontWeight: 500, fontSize: 15, marginLeft: 4 }}>
+                          +{mission.missionExp} exp
+                        </div>
+                      </div>
+                      {activeTab === 'progress' && (
                         <button
-                          onClick={() => handleCertClick(goal.id)}
+                          onClick={() => handleCertClick(mission.id)}
                           style={{
-                            background: '#f7eac2',
+                            background: '#fffbe9',
                             border: 'none',
                             borderRadius: 12,
-                            padding: '6px 12px',
+                            padding: '8px 18px',
                             fontWeight: 600,
+                            fontSize: 16,
                             cursor: 'pointer',
-                            color: '#7a6a2f',
+                            color: '#bfae6a',
+                            marginLeft: 16,
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                           }}
                         >
                           + 인증
                         </button>
-                        <button
-                          onClick={() => handleReissue(goal.id)}
+                      )}
+                    </div>
+                    {/* 진행률 바 (진행중 탭에서만) */}
+                    {activeTab === 'progress' && (
+                      <div
+                        style={{
+                          width: 'calc(100% - 120px)',
+                          marginTop: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                        }}
+                      >
+                        <div
                           style={{
-                            background: '#fff',
-                            border: '1.5px solid #f7eac2',
-                            borderRadius: 12,
-                            padding: '6px 12px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            color: '#7a6a2f',
+                            flex: 1,
+                            height: 12,
+                            background: '#f5f5f7',
+                            borderRadius: 8,
+                            overflow: 'hidden',
                           }}
                         >
-                          재발급
-                        </button>
+                          <div
+                            style={{
+                              width: `${percent}%`,
+                              height: '100%',
+                              background: '#FFD600',
+                              borderRadius: 8,
+                              transition: 'width 0.4s',
+                            }}
+                          />
+                        </div>
+                        <div style={{ fontSize: 15, color: '#aaa', minWidth: 38, textAlign: 'right' }}>{percent}%</div>
                       </div>
                     )}
                   </div>
-                  <div
-                    className="progress-bar"
-                    style={{ background: '#f0f3f7', height: 8, borderRadius: 8, overflow: 'hidden', marginBottom: 6 }}
-                  >
-                    <div
-                      className="progress"
-                      style={{
-                        width: `${goal.progress}%`,
-                        height: '100%',
-                        background: '#f7eac2',
-                        borderRadius: 8,
-                        transition: 'width 0.4s',
-                      }}
-                    ></div>
-                  </div>
-                  <span className="progress-text">{goal.progress}%</span>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-                <button
-                  onClick={handleNewMission}
-                  style={{
-                    background: '#f7eac2',
-                    border: 'none',
-                    borderRadius: 12,
-                    padding: '12px 24px',
-                    fontSize: '1.1rem',
-                    color: '#7a6a2f',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s',
-                    fontWeight: 500,
-                  }}
-                >
-                  미션 발급받기
-                </button>
-              </div>
+              <div style={{ color: '#bbb', marginTop: 40 }}>미션이 없습니다.</div>
             )}
           </div>
         </div>
@@ -259,7 +201,31 @@ const GoalsPage: React.FC = () => {
           }}
         >
           <img src={todakiImg} alt="토닥이" className="todaki-img" />
-          {/* 레벨/경험치 UI는 추후 필요시 추가 */}
+          {/* 레벨/경험치 UI */}
+          <div style={{ fontSize: 32, fontWeight: 700, color: '#000000', marginBottom: 8, marginTop: 16 }}>
+            Lv.{level}
+          </div>
+          <div
+            style={{
+              width: 180,
+              height: 18,
+              background: '#fffbe9',
+              borderRadius: 9,
+              marginBottom: 6,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: `${(exp / 50) * 100}%`,
+                height: '100%',
+                background: '#FFD600',
+                borderRadius: 9,
+                transition: 'width 0.5s',
+              }}
+            />
+          </div>
+          <div style={{ fontSize: 15, color: '#888' }}>{exp} / 50 exp</div>
         </div>
       </div>
       {/* 인증 모달 */}
@@ -269,7 +235,7 @@ const GoalsPage: React.FC = () => {
             <h3>미션 인증</h3>
             <div style={{ marginBottom: 18 }}>미션을 완료하셨나요?</div>
             <div className="modal-buttons">
-              <button className="cancel-btn" onClick={() => setShowCertModal({ open: false, goalId: null })}>
+              <button className="cancel-btn" onClick={() => setShowCertModal({ open: false, missionId: null })}>
                 취소
               </button>
               <button className="confirm-btn" onClick={handleCertConfirm}>

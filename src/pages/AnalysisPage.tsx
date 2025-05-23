@@ -187,16 +187,16 @@ const AnalysisPage: React.FC = () => {
   return (
     <div className="analysis-root" style={{background: '#fff'}}>
       {/* 네비게이션 바 */}
-      <nav className="main-nav" style={{marginBottom:0}}>
-        <img src={logoImg} alt="토닥이 로고" className="main-logo" onClick={() => navigate('/main')} style={{cursor:'pointer'}} />
+      <nav className="main-nav">
+        <img src={logoImg} alt="토닥이 로고" className="main-logo" onClick={() => navigate('/')} style={{cursor:'pointer'}} />
         <div className="main-menu">
           <span onClick={() => navigate('/main')} style={{cursor:'pointer'}}>채팅</span>
           <span onClick={() => navigate('/goals')} style={{cursor:'pointer'}}>미션</span>
           <span onClick={() => navigate('/analysis')} style={{cursor:'pointer'}}>분석</span>
           <span onClick={() => navigate('/calendar')} style={{cursor:'pointer'}}>캘린더</span>
-          <span onClick={() => navigate('/test')} style={{cursor:'pointer'}}>심리검사</span>
+          <span onClick={() => navigate('/professional-survey')} style={{cursor:'pointer'}}>심리검사</span>
         </div>
-        <span className="profile-menu" style={{cursor:'pointer'}} onClick={() => navigate('/profile')}>프로필</span>
+        <span className="profile-menu" style={{cursor:'pointer', marginLeft: 'auto', paddingRight: '20px', marginRight: 30}} onClick={() => navigate('/profile')}>프로필</span>
       </nav>
       <div style={{width:'100%',height:36,background:'#fff'}}></div>
       <div className="analysis-content" style={{maxWidth:1400,margin:'0 auto',display:'flex',gap:0,background:'#fff',padding:0}}>

@@ -4,18 +4,23 @@ import '../InitialPage.css';
 import logoImg from '../assets/logo.png';
 import todakiImg from '../assets/todaki.png';
 
-const chatMessages = [
-  {
-    sender: '토닥이',
-    text: '이제 너에 대해 잘 알았어! 앞으로 친하게 지내자.',
-  },
-];
-
 const TestCompletePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [visibleMessages, setVisibleMessages] = useState(1);
   const result = location.state?.result;
+
+  const chatMessages = [
+    
+    {
+      sender: '토닥이',
+      text: `설문하느라 수고했어! \n 설문 결과, ${result?.totalScore}점이야.\n ${result?.interpretation}로 보여.`,
+    },
+    {
+      sender: '토닥이',
+      text: '이제 너에 대해 잘 알았어. \n앞으로 친하게 지내자.',
+    }, 
+  ];
 
   useEffect(() => {
     if (visibleMessages < chatMessages.length) {
@@ -69,7 +74,7 @@ const TestCompletePage: React.FC = () => {
                 >
                   {msg.sender}
                 </span>
-                <div className={'message-content'}>
+                <div className={'message-content'} style={{ textAlign: 'left' }}>
                   <div className="text">
                     {msg.text.split('\n').map((line: string, i: number) => (
                       <span key={i}>
@@ -81,34 +86,7 @@ const TestCompletePage: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
-          {/* 결과가 있으면 결과 표시 */}
-          {result && (
-            <div
-              style={{
-                marginTop: 32,
-                background: '#fffbe6',
-                border: '1.5px solid #ffe28a',
-                borderRadius: 14,
-                padding: '28px 32px',
-                boxShadow: '0 2px 12px rgba(255,215,114,0.08)',
-                fontSize: '1.13rem',
-                color: '#222',
-                fontWeight: 400,
-                maxWidth: 420,
-                minWidth: 0,
-                lineHeight: 1.7,
-              }}
-            >
-              <div style={{ fontWeight: 600, fontSize: '1.18rem', marginBottom: 10, color: '#e6b800' }}>설문 결과</div>
-              <div style={{ marginBottom: 8 }}>
-                총점: <b>{result.totalScore}</b>점
-              </div>
-              <div>
-                해석: <b>{result.interpretation}</b>
-              </div>
-            </div>
-          )}
+          ))} 
         </div>
         {/* 오른쪽: 로고, 캐릭터, 버튼 */}
         <div

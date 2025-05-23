@@ -25,6 +25,12 @@ interface SurveyResultDetail {
   resultLabel?: string;
   interpretation?: string;
   resultDescription?: string;
+  resultDetail?: string;
+  resultFeature?: string;
+  resultAdvice?: string;
+  detail?: string;
+  feature?: string;
+  advice?: string;
 }
 
 const categories = [
@@ -87,6 +93,7 @@ export const ProfessionalSurveyPage: React.FC = () => {
       });
       if (!res.ok) throw new Error('결과를 불러오지 못했습니다.');
       const data = await res.json();
+      console.log(data);
       setResultDetail(data);
       setShowResultModal(true);
     } catch {
@@ -236,50 +243,88 @@ export const ProfessionalSurveyPage: React.FC = () => {
           style={{ cursor: 'pointer' }}
         />
         <div className="main-menu">
-          <span onClick={() => navigate('/main')} style={{ cursor: 'pointer' }}>
-            채팅
-          </span>
-          <span onClick={() => navigate('/goals')} style={{ cursor: 'pointer' }}>
-            미션
-          </span>
-          <span onClick={() => navigate('/analysis')} style={{ cursor: 'pointer' }}>
-            분석
-          </span>
-          <span onClick={() => navigate('/calendar')} style={{ cursor: 'pointer' }}>
-            캘린더
-          </span>
-          <span style={{ color: '#FFD772', fontWeight: 700 }}>심리검사</span>
+          <span onClick={() => navigate('/main')} style={{ cursor: 'pointer' }}>채팅</span>
+          <span onClick={() => navigate('/goals')} style={{ cursor: 'pointer' }}>미션</span>
+          <span onClick={() => navigate('/analysis')} style={{ cursor: 'pointer' }}>분석</span>
+          <span onClick={() => navigate('/calendar')} style={{ cursor: 'pointer' }}>캘린더</span>
+          <span onClick={() => navigate('/professional-survey')} style={{ cursor: 'pointer' }}>심리검사</span>
         </div>
         <span
           className="profile-menu"
-          style={{ cursor: 'pointer', marginLeft: 'auto', paddingRight: '20px' }}
+          style={{ cursor: 'pointer', marginLeft: 'auto', paddingRight: '20px', marginRight: 30 }}
           onClick={() => navigate('/profile')}
         >
           프로필
         </span>
       </nav>
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 0 60px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
-          <h2 style={{ fontWeight: 700, fontSize: '2rem', margin: 0 }}>전문 심리검사</h2>
+      <div style={{
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        background: 'transparent',
+        minHeight: 'calc(100vh - 80px)'
+      }}>
+        <div style={{
+          maxWidth: 1200,
+          minWidth: 0,
+          width: '100%',
+          marginTop: 30,
+          marginLeft: 32,
+          marginRight: 32,
+          background: '#fff',
+          border: '1px solid #e0e0e0',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.07)',
+          borderRadius: 18,
+          minHeight: 720,
+          padding: 0
+        }}>
+          <div style={{ padding: '15px 40px', minHeight: 720, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 30, width: '100%', justifyContent: 'space-between' }}>
+              {/* 설문 step일 때는 설문 카테고리와 설문지 이름만, 그 외에는 기존처럼 */}
+              {step === 'survey' ? (
+                <>
+                  {selectedCategory && (
+                    <span style={{ fontSize: '1.15rem', fontWeight: 600, color: '#bfa600', marginLeft: 52, marginTop:50, marginRight: 12 }}>
+                      {categories.find(cat => cat.code === selectedCategory)?.label || selectedCategory}
+                    </span>
+                  )}
+                  {surveyType && (
+                    <span style={{ fontSize: '1.15rem', fontWeight: 600,marginTop:50, color: '#222' }}>
+                      {surveyType}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h2 style={{ fontWeight: 700, fontSize: '2rem', margin: 0, textAlign: 'left' }}>전문 심리검사</h2>
+                </>
+              )}
+              <div style={{ marginLeft: 'auto' }}>
           {step === 'list' && (
             <button
               onClick={() => setShowCategoryModal(true)}
               style={{
-                padding: '12px 32px',
-                background: '#FFD772',
-                color: '#222',
+                      background: '#f7eac2',
+                      color: '#7a6a2f',
                 border: 'none',
-                borderRadius: 8,
+                      borderRadius: 12,
                 fontWeight: 600,
-                fontSize: '1.1rem',
+                      fontSize: '1rem',
+                      padding: '6px 12px',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
               }}
             >
               새 설문 시작
             </button>
           )}
         </div>
+            </div>
+            {/* 구분선 */}
+            {step === 'list' && (
+              <div style={{ width: '100%', height: 1, background: '#e0e0e0'}} />
+            )}
         {loading && <div style={{ padding: 40, textAlign: 'center' }}>로딩 중...</div>}
         {error && <div style={{ color: 'red', marginBottom: 24 }}>{error}</div>}
         {/* 1. 이전 설문 목록 */}
@@ -290,12 +335,14 @@ export const ProfessionalSurveyPage: React.FC = () => {
               gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               gap: 32,
               justifyContent: 'center',
-              alignItems: 'flex-start',
+                  alignItems: history.length === 0 ? 'center' : 'flex-start',
               marginTop: 24,
+                  minHeight: 400,
+                  height: history.length === 0 ? '400px' : undefined,
             }}
           >
             {history.length === 0 ? (
-              <div style={{ color: '#aaa', fontSize: '1.1rem', margin: '40px auto' }}>
+                  <div style={{ color: '#aaa', fontSize: '1.1rem', margin: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%' }}>
                 이전에 진행한 전문 심리검사가 없습니다.
               </div>
             ) : (
@@ -331,14 +378,14 @@ export const ProfessionalSurveyPage: React.FC = () => {
                   <button
                     style={{
                       marginTop: 10,
-                      background: '#FFD772',
+                      background: '#f7eac2',
                       border: 'none',
                       borderRadius: 8,
                       padding: '8px 22px',
                       fontWeight: 600,
                       fontSize: '1.05rem',
                       cursor: 'pointer',
-                      color: '#222',
+                      color: '#7a6a2f',
                       boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                     }}
                   >
@@ -363,6 +410,8 @@ export const ProfessionalSurveyPage: React.FC = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+                  maxHeight: '100vh',
+                  overflowY: 'auto',
             }}
           >
             <div
@@ -372,6 +421,9 @@ export const ProfessionalSurveyPage: React.FC = () => {
                 padding: 40,
                 minWidth: 340,
                 maxWidth: 420,
+                    width: '90vw',
+                    maxHeight: '80vh',
+                    overflowY: 'auto',
                 boxShadow: '0 4px 24px rgba(0,0,0,0.13)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -387,7 +439,7 @@ export const ProfessionalSurveyPage: React.FC = () => {
                 {new Date(resultDetail.createdAt).toLocaleDateString()}
               </div>
               <div style={{ fontWeight: 600, margin: '10px 0 0 0' }}>
-                총점: <span style={{ color: '#FFD772', fontWeight: 700 }}>{resultDetail.totalScore}</span>
+                총점: <span style={{ color: '#000000', fontWeight: 700 }}>{resultDetail.totalScore}</span>
               </div>
               <div style={{ color: '#444', fontSize: '1.08rem', marginTop: 2 }}>
                 {resultDetail.resultLabel || resultDetail.interpretation}
@@ -395,7 +447,96 @@ export const ProfessionalSurveyPage: React.FC = () => {
               {resultDetail.resultDescription && (
                 <div style={{ color: '#888', fontSize: '0.98rem', marginTop: 6 }}>{resultDetail.resultDescription}</div>
               )}
-              <div style={{ marginTop: 18, display: 'flex', gap: 12, justifyContent: 'center' }}>
+                  {resultDetail.resultDetail && (
+                    <>
+                      <div style={{ fontWeight: 700, fontSize: '1.1rem', margin: '16px 0 8px 0', color: '#bfa600' }}>
+                        상세 설명
+                      </div>
+                      <div
+                        style={{
+                          color: '#444',
+                          fontSize: '1.05rem',
+                          marginBottom: 18,
+                          whiteSpace: 'pre-line',
+                          textAlign: 'left',
+                          lineHeight: 1.8,
+                        }}
+                      >
+                        {resultDetail.resultDetail}
+                      </div>
+                    </>
+                  )}
+                  {resultDetail.resultFeature && (
+                    <>
+                      <div style={{ fontWeight: 700, fontSize: '1.1rem', margin: '16px 0 8px 0', color: '#bfa600' }}>
+                        특징
+                      </div>
+                      <ul
+                        style={{
+                          color: '#444',
+                          fontSize: '1.05rem',
+                          marginBottom: 18,
+                          textAlign: 'left',
+                          paddingLeft: 0,
+                          background: '#fffbe9',
+                          borderRadius: 10,
+                          padding: '12px 14px',
+                          maxWidth: 360,
+                          lineHeight: 1.8,
+                        }}
+                      >
+                        {resultDetail.resultFeature.split(/\n|\r|•|- /).map((line, idx) =>
+                          line.trim() ? (
+                            <li
+                              key={idx}
+                              style={{ marginBottom: 12, listStyle: 'none', display: 'flex', alignItems: 'flex-start' }}
+                            >
+                              <span style={{ marginRight: 10, fontSize: '1.15em' }}>💡</span>
+                              <span style={{ fontWeight: line.includes('경계') || line.includes('전략') ? 700 : 400 }}>
+                                {line.trim()}
+                              </span>
+                            </li>
+                          ) : null,
+                        )}
+                      </ul>
+                    </>
+                  )}
+                  {resultDetail.resultAdvice && (
+                    <>
+                      <div style={{ fontWeight: 700, fontSize: '1.1rem', margin: '16px 0 8px 0', color: '#bfa600' }}>
+                        조언
+                      </div>
+                      <ul
+                        style={{
+                          color: '#444',
+                          fontSize: '1.05rem',
+                          marginBottom: 18,
+                          textAlign: 'left',
+                          paddingLeft: 0,
+                          background: '#f0f7ff',
+                          borderRadius: 10,
+                          padding: '12px 14px',
+                          maxWidth: 360,
+                          lineHeight: 1.8,
+                        }}
+                      >
+                        {resultDetail.resultAdvice.split(/\n|\r|•|- /).map((line, idx) =>
+                          line.trim() ? (
+                            <li
+                              key={idx}
+                              style={{ marginBottom: 12, listStyle: 'none', display: 'flex', alignItems: 'flex-start' }}
+                            >
+                              <span style={{ marginRight: 10, fontSize: '1.15em' }}>📝</span>
+                              <span style={{ fontWeight: line.includes('책임') || line.includes('전략') ? 700 : 400 }}>
+                                {line.trim()}
+                              </span>
+                            </li>
+                          ) : null,
+                        )}
+                      </ul>
+                    </>
+                  )}
+                  <div style={{ marginTop: 18, display: 'flex', gap: 12, justifyContent: 'center', width: '100%' }}>
                 <button
                   onClick={() => setShowResultModal(false)}
                   style={{
@@ -455,14 +596,31 @@ export const ProfessionalSurveyPage: React.FC = () => {
                     key={cat.code}
                     onClick={() => setSelectedCategory(cat.code)}
                     style={{
-                      padding: '14px 28px',
-                      borderRadius: 10,
-                      border: selectedCategory === cat.code ? '2px solid #FFD772' : '1.5px solid #e0e0e0',
-                      background: selectedCategory === cat.code ? '#FFF7E0' : '#fff',
-                      color: '#333',
+                          background: selectedCategory === cat.code ? '#ffe38e' : '#fff',
+                          border: selectedCategory === cat.code ? '1px solid #ffe38e' : '1px solid #E0E0E0',
+                          borderRadius: 8,
+                          padding: '8px 16px',
+                          fontSize: '0.9rem',
+                          color: selectedCategory === cat.code ? '#222' : '#444',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          textAlign: 'center',
                       fontWeight: 500,
-                      fontSize: '1.08rem',
-                      cursor: 'pointer',
+                          boxShadow: selectedCategory === cat.code ? '0 2px 8px rgba(255,215,114,0.10)' : 'none',
+                        }}
+                        onMouseOver={e => {
+                          if (selectedCategory !== cat.code) {
+                            e.currentTarget.style.background = '#fffbe9';
+                            e.currentTarget.style.color = '#444';
+                            e.currentTarget.style.borderColor = '#ffe38e';
+                          }
+                        }}
+                        onMouseOut={e => {
+                          if (selectedCategory !== cat.code) {
+                            e.currentTarget.style.background = '#fff';
+                            e.currentTarget.style.color = '#444';
+                            e.currentTarget.style.borderColor = '#E0E0E0';
+                          }
                     }}
                   >
                     {cat.label}
@@ -474,30 +632,39 @@ export const ProfessionalSurveyPage: React.FC = () => {
                   onClick={handleStartSurvey}
                   style={{
                     background: '#FFD772',
+                        color: '#222',
                     border: 'none',
-                    borderRadius: 8,
-                    padding: '12px 32px',
+                        borderRadius: 22,
                     fontWeight: 600,
-                    fontSize: '1.1rem',
+                        fontSize: '0.97rem',
+                        padding: '8px 18px',
                     cursor: !selectedCategory || loading ? 'not-allowed' : 'pointer',
-                    color: '#222',
+                        boxShadow: '0 2px 8px rgba(245,224,163,0.10)',
+                        marginRight: 8,
+                        transition: 'background 0.18s',
                   }}
                   disabled={!selectedCategory || loading}
+                      onMouseOver={e => { e.currentTarget.style.background = '#ffe28a'; }}
+                      onMouseOut={e => { e.currentTarget.style.background = '#FFD772'; }}
                 >
                   설문 시작
                 </button>
                 <button
                   onClick={() => setShowCategoryModal(false)}
                   style={{
-                    background: '#eee',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '12px 32px',
-                    fontWeight: 500,
-                    fontSize: '1.1rem',
+                        background: '#fff',
+                        color: '#FFD772',
+                        border: '1.5px solid #FFD772',
+                        borderRadius: 22,
+                        fontWeight: 600,
+                        fontSize: '0.97rem',
+                        padding: '8px 18px',
                     cursor: 'pointer',
-                    color: '#444',
+                        boxShadow: '0 2px 8px rgba(245,224,163,0.10)',
+                        transition: 'background 0.18s',
                   }}
+                      onMouseOver={e => { e.currentTarget.style.background = '#fffbe9'; }}
+                      onMouseOut={e => { e.currentTarget.style.background = '#fff'; }}
                 >
                   닫기
                 </button>
@@ -507,111 +674,127 @@ export const ProfessionalSurveyPage: React.FC = () => {
         )}
         {/* 4. 설문 질문/응답 */}
         {step === 'survey' && (
-          <div className="flex flex-col items-center gap-8 mt-8 mb-24 w-full">
-            {/* 설문지 이름 강조 + 진행률 */}
-            <div
-              style={{
-                width: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                marginBottom: 18,
-              }}
-            >
               <div
+                className="input-section"
                 style={{
-                  background: '#FFD772',
-                  color: '#222',
-                  fontWeight: 800,
-                  fontSize: '2.1rem',
+                  marginTop: 0,
+                  background: '#fff',
                   borderRadius: 18,
-                  boxShadow: '0 4px 18px rgba(255,215,114,0.13)',
-                  padding: '18px 44px',
-                  marginBottom: 10,
-                  textAlign: 'center',
-                  letterSpacing: '-1px',
-                  display: 'inline-block',
-                  minWidth: 320,
-                  maxWidth: 600,
+                  padding: '36px 32px',
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
                 }}
               >
-                {categories.find((c) => c.code === selectedCategory)?.label}
-                <span style={{ fontWeight: 600, fontSize: '1.1rem', color: '#bfa600', marginLeft: 12 }}>
-                  ({surveyType})
-                </span>
-              </div>
-              {/* 진행률 바 + 텍스트 */}
-              <div style={{ width: '100%', maxWidth: 420, margin: '0 auto', marginTop: 2 }}>
                 <div
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}
-                >
-                  <span style={{ fontSize: '1.08rem', color: '#b0b0b0', fontWeight: 500 }}>
-                    {currentPage * QUESTIONS_PER_PAGE + 1} / {questions.length} 문항
-                  </span>
-                  <span style={{ fontSize: '1.08rem', color: '#b0b0b0', fontWeight: 500 }}>
-                    {Math.round(((currentPage * QUESTIONS_PER_PAGE + 1) / questions.length) * 100)}%
-                  </span>
-                </div>
-                <div
+                  className="test-progress"
                   style={{
-                    width: '100%',
-                    height: 10,
-                    background: '#f5e7b7',
-                    borderRadius: 8,
-                    overflow: 'hidden',
-                    boxShadow: '0 1px 4px rgba(255,215,114,0.08)',
+                    marginBottom: 24,
+                    fontWeight: 400,
+                    fontSize: '0.9rem',
+                    color: '#666',
                   }}
                 >
-                  <div
-                    style={{
-                      width: `${((currentPage * QUESTIONS_PER_PAGE + 1) / questions.length) * 100}%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #FFD772 60%, #ffe9a7 100%)',
-                      borderRadius: 8,
-                      transition: 'width 0.3s cubic-bezier(.4,2,.6,1)',
-                    }}
-                  />
+                  {currentPage + 1} / {Math.ceil(questions.length / QUESTIONS_PER_PAGE)}
                 </div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-8 w-full max-w-2xl">
+                <div
+                  className="test-questions"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 32,
+                    width: '100%',
+                    maxWidth: 672,
+                    alignItems: 'center',
+                  }}
+                >
               {questions
                 .slice(currentPage * QUESTIONS_PER_PAGE, (currentPage + 1) * QUESTIONS_PER_PAGE)
-                .map((q, idx) => (
+                    .map((q, idx) => {
+                      const questionIndex = currentPage * QUESTIONS_PER_PAGE + idx;
+                      return (
                   <div
                     key={q.id}
-                    className="card bg-base-100 shadow-md rounded-xl p-8 border border-[#f2d772] flex flex-col gap-5"
-                    style={{ background: '#fffbe9', boxShadow: '0 4px 16px rgba(255,215,114,0.08)' }}
-                  >
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            gap: 18,
+                            padding: '24px',
+                            background: '#fff',
+                            borderRadius: 12,
+                            border: '1.5px solid #f2f2f2',
+                            marginBottom: 24,
+                            minWidth: 0,
+                            width: '100%',
+                            maxWidth: 600,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
                     <div
                       style={{
-                        fontWeight: 700,
-                        fontSize: '1.18rem',
-                        marginBottom: 18,
+                                background: '#FFD772',
+                                color: '#fff',
+                                borderRadius: 1,
+                                fontSize: '0.9rem',
+                                fontWeight: 600,
+                                padding: '2px 12px',
+                                marginRight: 8,
+                                letterSpacing: '-0.5px',
+                              }}
+                            >
+                              Q{q.order}.
+                            </div>
+                            <span
+                              style={{
+                                fontWeight: 400,
+                                fontSize: '1.13rem',
                         color: '#222',
-                        letterSpacing: '-0.5px',
+                                textAlign: 'left',
                         lineHeight: 1.6,
                       }}
                     >
-                      Q{q.order}. {q.content}
+                              {q.content}
+                            </span>
+                          </div>
+                          {/* 매우 그렇지 않다 ~ 매우 그렇다 라벨+구분선: 질문 아래, 라디오 위 */}
+                          <div
+                            style={{
+                              width: 410,
+                              maxWidth: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center', 
+                              color: '#b0b0b0',
+                              fontWeight: 400,
+                              fontSize: '0.8rem',
+                              letterSpacing: '-0.5px',
+                            }}
+                          >
+                            <span style={{ whiteSpace: 'nowrap', marginLeft:'140px' }}>매우 그렇지 않다</span>
+                            <div style={{ flex: 0.8, height: 1, background: '#e0e0e0', margin: '0 3px' }}></div>
+                            <span style={{ whiteSpace: 'nowrap' }}>보통이다</span>
+                            <div style={{ flex: 1, height: 1, background: '#e0e0e0', margin: '0 3px' }}></div>
+                            <span style={{ whiteSpace: 'nowrap' }}>매우 그렇다</span>
                     </div>
-                    {renderRadioGroup(currentPage * QUESTIONS_PER_PAGE + idx)}
+                          {renderRadioGroup(questionIndex)}
                   </div>
-                ))}
+                      );
+                    })}
             </div>
-            {/* 버튼 영역을 질문 카드와 같은 maxWidth로 감싸고 오른쪽 정렬 */}
             <div
               style={{
                 display: 'flex',
-                gap: 16,
+                    gap: 12,
                 marginTop: 32,
-                width: '100%',
-                maxWidth: 672,
-                justifyContent: 'flex-end',
               }}
             >
               <button
                 onClick={() => setCurrentPage((prev) => prev - 1)}
+                    disabled={currentPage === 0}
                 style={{
                   background: '#eee',
                   border: 'none',
@@ -619,88 +802,171 @@ export const ProfessionalSurveyPage: React.FC = () => {
                   padding: '12px 32px',
                   fontWeight: 500,
                   fontSize: '1.1rem',
-                  cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
+                      cursor: 'pointer',
                   color: '#444',
                 }}
-                disabled={currentPage === 0}
               >
                 이전
               </button>
-              {currentPage < Math.ceil(questions.length / QUESTIONS_PER_PAGE) - 1 ? (
+                  <button
+                    onClick={() => {
+                      if (currentPage < Math.ceil(questions.length / QUESTIONS_PER_PAGE) - 1) {
+                        setCurrentPage((prev) => prev + 1);
+                      } else {
+                        handleSubmit();
+                      }
+                    }}
+                    disabled={questions
+                      .slice(currentPage * QUESTIONS_PER_PAGE, (currentPage + 1) * QUESTIONS_PER_PAGE)
+                      .some((_, idx) => answers[currentPage * QUESTIONS_PER_PAGE + idx] === null)}
+                    style={{
+                      background: '#FFD772',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '12px 32px',
+                      fontWeight: 500,
+                      fontSize: '1.1rem',
+                      cursor: 'pointer',
+                      color: '#222',
+                    }}
+                  >
+                    {currentPage === Math.ceil(questions.length / QUESTIONS_PER_PAGE) - 1 ? '완료' : '다음'}
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* 5. 결과 표시 */}
+            {step === 'result' && result && (
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: 18,
+                  boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+                  maxWidth: 600,
+                  margin: '40px auto',
+                  padding: '40px 24px',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '1.5rem', marginBottom: 8 }}>검사 결과</div>
+                {result.totalScore !== undefined && (
+                  <div style={{ fontSize: '1.1rem', color: '#000000', fontWeight: 400, marginBottom: 8 }}>
+                    총점: <span style={{ color: '#000000' }}>{result.totalScore}</span>
+                  </div>
+                )}
+                {result.interpretation && (
+                  <div style={{ fontSize: '1.15rem', fontWeight: 400, marginBottom: 18 }}>{result.interpretation}</div>
+                )}
+                {/* 상세 설명 */}
+                {result.detail && (
+                  <>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#bfa600', margin: '32px 0 8px 0' }}>
+                      상세 설명
+                    </div>
+                    <div
+                      style={{
+                        color: '#444',
+                        fontSize: '1.05rem',
+                        marginBottom: 32,
+                        lineHeight: 1.8,
+                        textAlign: 'left',
+                        maxWidth: 600,
+                        marginLeft: 'auto',
+                        marginRight: 'auto',
+                      }}
+                    >
+                      {result.detail}
+                    </div>
+                  </>
+                )}
+                {/* 특징 */}
+                {result.feature && (
+                  <>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#bfa600', margin: '32px 0 8px 0' }}>
+                      특징
+                    </div>
+                    <ul
+                      style={{
+                        background: '#fffbe9',
+                        borderRadius: 10,
+                        padding: '12px 14px',
+                        maxWidth: 480,
+                        color: '#444',
+                        fontSize: '1.05rem',
+                        margin: '0 auto 32px auto',
+                        lineHeight: 1.8,
+                        textAlign: 'left',
+                      }}
+                    >
+                      {result.feature.split(/\n|\r|•|- /).map((line, idx) =>
+                        line.trim() ? (
+                          <li
+                            key={idx}
+                            style={{ marginBottom: 12, listStyle: 'none', display: 'flex', alignItems: 'flex-start' }}
+                          >
+                            <span style={{ marginRight: 10, fontSize: '1.15em' }}>💡</span>
+                            <span>{line.trim()}</span>
+                          </li>
+                        ) : null,
+                      )}
+                    </ul>
+                  </>
+                )}
+                {/* 조언 */}
+                {result.advice && (
+                  <>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#bfa600', margin: '32px 0 8px 0' }}>
+                      조언
+                    </div>
+                    <ul
+                      style={{
+                        background: '#f0f7ff',
+                        borderRadius: 10,
+                        padding: '12px 14px',
+                        maxWidth: 480,
+                        color: '#444',
+                        fontSize: '1.05rem',
+                        margin: '0 auto 32px auto',
+                        lineHeight: 1.8,
+                        textAlign: 'left',
+                      }}
+                    >
+                      {result.advice.split(/\n|\r|•|- /).map((line, idx) =>
+                        line.trim() ? (
+                          <li
+                            key={idx}
+                            style={{ marginBottom: 12, listStyle: 'none', display: 'flex', alignItems: 'flex-start' }}
+                          >
+                            <span style={{ marginRight: 10, fontSize: '1.15em' }}>📝</span>
+                            <span>{line.trim()}</span>
+                          </li>
+                        ) : null,
+                      )}
+                    </ul>
+                  </>
+                )}
                 <button
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
+                  onClick={() => setStep('list')}
                   style={{
+                    marginTop: 18,
+                    width: '200px',
                     background: '#FFD772',
                     border: 'none',
                     borderRadius: 8,
                     padding: '12px 32px',
-                    fontWeight: 600,
+                    fontWeight: 400,
                     fontSize: '1.1rem',
                     cursor: 'pointer',
                     color: '#222',
                     boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                   }}
-                  disabled={questions
-                    .slice(currentPage * QUESTIONS_PER_PAGE, (currentPage + 1) * QUESTIONS_PER_PAGE)
-                    .some((_, idx) => answers[currentPage * QUESTIONS_PER_PAGE + idx] === null)}
                 >
-                  다음
+                  목록으로 돌아가기
                 </button>
-              ) : (
-                <button
-                  onClick={handleSubmit}
-                  style={{
-                    background: '#FFD772',
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '12px 32px',
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
-                    cursor: answers.some((a) => a === null) ? 'not-allowed' : 'pointer',
-                    color: '#222',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                  }}
-                  disabled={answers.some((a) => a === null) || loading}
-                >
-                  제출
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setStep('list');
-                  setCurrentPage(0);
-                }}
-                style={{
-                  background: '#eee',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '12px 32px',
-                  fontWeight: 500,
-                  fontSize: '1.1rem',
-                  cursor: 'pointer',
-                  color: '#444',
-                }}
-              >
-                돌아가기
-              </button>
-            </div>
-          </div>
-        )}
-        {/* 5. 결과 표시 */}
-        {step === 'result' && result && (
-          <div className="flex flex-col items-center gap-8 mt-16 mb-24">
-            <div className="font-bold text-2xl mb-2">검사 결과</div>
-            {result.totalScore !== undefined && (
-              <div className="text-xl font-semibold">
-                총점: <span className="text-yellow-400 font-bold">{result.totalScore}</span>
               </div>
             )}
-            {result.interpretation && <div className="text-lg text-gray-700 mb-2">해석: {result.interpretation}</div>}
-            <button onClick={() => setStep('list')} className="btn btn-warning btn-md mt-4">
-              목록으로 돌아가기
-            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
